@@ -72,7 +72,7 @@
                         #that-is li { padding: 0px; }
                         #that-is { margin-top: 15px; font-size: 50px; }
                     </style>
-                    <header>¿En que consiste SSE?</header>
+                    <header>¿En qué consiste SSE?</header>
                     <section class="middle">
                         <ul id="that-is">
                             <li>Notificaciones PUSH</li>
@@ -97,7 +97,7 @@
                         <p>Crear una subscripción al stream de eventos:</p>
 <pre>
 if (!!window.EventSource) {
-    var source = new EventSource('stream.php');
+    var source = new EventSource('/events/stream/');
 } else {
     // Result to xhr polling :(
 }
@@ -118,10 +118,53 @@ source.addEventListener('error', function(e) {
   }
 }, false);
 </pre>
-        
                     </section>
                 </div>
 
+                <div class="slide">
+                    <style>
+                        code { font-weight: bold; }
+                    </style>
+                    <header>Python & Django Api</header>
+                    <section>
+                        <p>Opciones para settings.py:</p>
+                        <ul>
+                            <li><code>DJANGO_SSE_DEFAULT_RETRY</code> - Especifica el tiempo de espera entre cada intento de reconección.</li>
+                            <li><code>DJANGO_SSE_DEFAULT_SLEEP</code> - Especifica el tiempo de espera entre cada iteracion</li>
+                        </ul>
+
+                        <p>Ejemplo de uso:</p>
+<pre>
+from django.views.generic import View
+from django_sse.decorators import is_stream_sse_method
+
+@is_stream_sse_method(sleep=2)
+def get(self, request):
+    self.sse.add_message(event='otherevent', text='Hello World')
+    self.sse.event_other2event(text='Goodbye')
+</pre>
+                    </section>
+                </div>
+
+                <div class="slide" id="questions">
+                    <style>
+                        #questions p { font-size: 40px; }
+                    </style>
+                    <section class="middle">
+                        <p>¿Preguntas?</p>
+                    </section>
+                </div>
+
+
+                <div class="slide" id="links">
+                    <style>
+                        #questions ul { font-size: 40px; }
+                    </style>
+                    <section class="middle">
+                        <p><a href="https://github.com/niwibe/django-sse">https://github.com/niwibe/django-sse</a></p>
+                        <p><a href="http://www.niwi.be/post/django-sse-html5-server-sent-events-django/">http://www.niwi.be/post/django-sse-html5-server-sent-events-django/</a></p>
+                    </section>
+                </div>
             </div> <!-- slides -->
             <div id="speaker-note" class="invisible" style="display: none;"></div> <!-- speaker note -->
             <aside id="help" class="sidebar invisible" style="display: hidden;">
