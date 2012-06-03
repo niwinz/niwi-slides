@@ -321,8 +321,47 @@ initialize();
                     </section>
                 </section>
                 <section>
-                    <h1>THE END</h1>
-                    <h3 class="inverted">BY Hakim El Hattab / hakim.se</h3>
+                    <section>
+                        <h2>Backbone-Form</h2>
+<pre><code contenteditable>var Content = Backbone.View.extend({
+    el: $("div#content");
+    events: {'submit form': 'onFormSubmit'},
+    initialize: function() { 
+        _.bindAll(this, "onFormSubmit", "onFormSubmitSucces"); 
+        this.form = new Form({el:this.$("form")});
+    },
+    onFormSubmit: function(event) {
+        event.preventDefault();
+        this.form.submit({success: this.onFormSubmitSucces});
+    },
+    onFormSubmitSucces: function(data) {
+        if (!data.success) { this.form.setErrors(data.errors); }
+        else { this.form.clear() }
+    }
+});</code></pre>
+                    </section>
+                    <section>
+                        <h3>Estructura del json</h3>
+<pre><code contenteditable>{
+    "form": {
+        "field1": ["error1", "error2"],
+        "field2": ["error1", "error2"],
+    },
+    "global": [
+        "some global form error1",
+        "some global form error2"
+    ],
+    "success": false,
+    ...
+}</code></pre>
+                    </section>
+                </section>
+                <section>
+                    <h1 style="font-size: 90px;">¿Preguntas?</h1>
+                    <ul>
+                        <li><a href="http://documentcloud.github.com/backbone/">http://documentcloud.github.com/backbone/</a></li>
+                        <li><a href="http://underscorejs.org/">http://underscorejs.org/</a></li>
+                    </li>
                 </section>
             </div>
 
