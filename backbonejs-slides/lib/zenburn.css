@@ -19,6 +19,7 @@ pre .css .class,
 pre .css .id,
 pre .lisp .title {
   color: #DF9C26;
+    font-weight: bold;
 }
 
 pre .django .template_tag,
@@ -96,6 +97,7 @@ pre .apache .cbracket,
 pre .tex .formula {
   color: #CC9393;
   color:  #C76363;
+  color: #C33838;
 }
 
 pre .shebang,

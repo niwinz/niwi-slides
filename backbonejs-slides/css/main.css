@@ -305,6 +305,7 @@ body {
 		#reveal .controls a.enabled {
 			opacity: 0.6;
 			color: hsl(185, 85%, 70%);
+                        color: #020C91:
 
 			text-shadow: 0px 0px 2px hsla(185, 45%, 70%, 0.3);
 		}
@@ -350,6 +351,7 @@ body {
 	#reveal .progress span {
 		display: block;
 		background: hsl(185, 85%, 50%);
+                background: #020C91:
 		height: 100%;
 		width: 0px;
 
