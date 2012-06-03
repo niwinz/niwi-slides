@@ -1,0 +1,177 @@
+<!doctype html>  
+<html lang="en">
+    
+    <head>
+        <meta charset="utf-8">
+        
+        <title>django-greenqueue</title>
+
+        <meta name="description" content="An easy to use CSS 3D slideshow tool for quickly creating good looking HTML presentations.">
+        <meta name="author" content="Hakim El Hattab">
+
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        
+        <link href='http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+        
+        <link rel="stylesheet" href="css/reset.css">
+        <link rel="stylesheet" href="css/main.css">
+        <link rel="stylesheet" href="css/print.css" type="text/css" media="print">
+
+        <link rel="stylesheet" href="lib/zenburn.css">
+    </head>
+    
+    <body>
+        
+        <div id="reveal">
+
+            <!-- Used to fade in a background when a specific slide state is reached -->
+            <div class="state-background"></div>
+            
+            <!-- Any section element inside of this container is displayed as a slide -->
+            <div class="slides">
+                <section>
+                    <h1 style="font-size:70px">django-greenqueue</h1>
+                    <blockquote>Alternativa ligera a Celery</blockquote>
+                    <!--
+                    <div>
+                        <a href="https://github.com/niwibe/django-greenqueue">https://github.com/niwibe/django-greenqueue</a>
+                    </div>
+                    -->
+
+                    <div style="margin-top: 50px">Andrei Antoukh</div>
+                    <div>@niwibe</div>
+                </section>
+                <section>
+                    <h3>¿Por que una alternativa?</h3>
+                    <br />
+                    <ul>
+                        <li>Celery es muy grande y tiene muchas dependencias.</li>
+                        <li>Configuración compleja cuando necesitas algo pequeño.</li>
+                        <li>El codigo fuente de celery es bastante complejo y lioso.</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>"Ventajas":</h3>
+                    <br />
+                    <ul>
+                        <li>Una sola dependencia inicial: <code>zeromq</code></li>
+                        <li>Código extensible para implementar backends. <br />Actualmente: sync, zeromq y rabbitmq</li>
+                        <li>Curva de aprendizaje muy ligera, sobretodo para los que vienen de Celery.</li>
+                        <li>Muy bien integrado con gevent. <br />Si se usa: <code>zeromq + gevent</code>.</li>
+                        <li>Backend especifico para unittest: <code>sync</code></li>
+                        <li>Configuración inicial mínima.</li>
+                    </ul>
+                </section>
+                <section>
+                    <section>
+                        <h3>¿Como se usa?</h3>
+                        <h4>Settings</h4>
+<pre class="python"><code contenteditable># settings.py
+GREENQUEUE_TASK_MODULES = ['yourproject.yourapp.async_tasks']
+INSTALLED_APPS += ['greenqueue']</code></pre>
+                    </section>
+                    <section>
+                        <h4>Async tasks</h4>
+<pre class="python"><code contenteditable># yourproject/yourapp/async_tasks.py
+from greenqueue.core import Library
+register = Library()
+
+@register.task(name='sum')
+def sum(x,y):
+    return x+y</code></pre>
+                    </section>
+                    <section>
+                        <h4>Views</h4>
+<pre class="python"><code contenteditable># yourproject/yourapp/views.py
+from django.views.generic import View
+from django.http import HttpResponse
+from greenqueue import send_task
+
+class Home(View):
+    def post(self, request):
+        # ...
+        async_result = send_task('sum', args=[2,3])
+        return HttpResponse("Sum: {0}".format(async_result.wait()))</code></pre>
+                    </section>
+                    <section>
+                        <h4>Run worker</h4>
+<pre><code contenteditable>python manage.py run_greenqueue -v2</code></pre>
+                    </section>
+                </section>
+                <section>
+                    <h1 style="font-size: 90px;">¿Preguntas?</h1>
+                    <ul>
+                        <li><a href="http://documentcloud.github.com/backbone/">http://documentcloud.github.com/backbone/</a></li>
+                        <li><a href="http://underscorejs.org/">http://underscorejs.org/</a></li>
+                    </li>
+                </section>
+            </div>
+
+            <!-- The navigational controls UI -->
+            <aside class="controls">
+                <a class="left" href="#">&#x25C4;</a>
+                <a class="right" href="#">&#x25BA;</a>
+                <a class="up" href="#">&#x25B2;</a>
+                <a class="down" href="#">&#x25BC;</a>
+            </aside>
+
+            <!-- Displays presentation progress, max value changes via JS to reflect # of slides -->
+            <div class="progress"><span></span></div>
+            
+        </div>
+
+        <!-- Optional libraries for code syntax highlighting and classList support in IE9 -->
+        <script src="lib/highlight.js"></script>
+        <script src="lib/classList.js"></script>
+        
+        <script src="js/reveal.js"></script>
+        
+        <script>
+            // Parse the query string into a key/value object
+            var query = {};
+            location.search.replace( /[A-Z0-9]+?=(\w*)/gi, function(a) {
+                query[ a.split( '=' ).shift() ] = a.split( '=' ).pop();
+            } );
+
+            // Fires when a slide with data-state=customevent is activated
+            //Reveal.addEventListener( 'customevent', function() {
+            //    alert( '"customevent" has fired' );
+            //} );
+
+            // Fires each time a new slide is activated
+            Reveal.addEventListener( 'slidechanged', function( event ) {
+                // event.indexh & event.indexv
+            } );
+
+            Reveal.initialize({
+                // Display controls in the bottom right corner
+                controls: true,
+
+                // Display a presentation progress bar
+                progress: true,
+
+                // If true; each slide will be pushed to the browser history
+                history: true,
+
+                // Loops the presentation, defaults to false
+                loop: false,
+
+                // Flags if mouse wheel navigation should be enabled
+                mouseWheel: true,
+
+                // Apply a 3D roll to links on hover
+                rollingLinks: false,
+
+                // UI style
+                theme: query.theme || 'default', // default/neon
+
+                // Transition style
+                transition: query.transition || 'default' // default/cube/page/concave/linear(2d)
+            });
+
+            hljs.initHighlightingOnLoad();
+        </script>
+
+    </body>
+</html>
