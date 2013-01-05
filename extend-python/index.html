@@ -188,6 +188,25 @@ AttributeError: /usr/lib/libmhash.so.2: undefined symbol: mhash_inits
 18516192</code></pre>
                     </section>
                     <section>
+                        <h2>Pass python values as reference to c function</h2>
+                        <pre><code contenteditable>/*
+    sample1.c
+    Compile with: gcc -shared -fPIC -o sample1.so sample1.c
+*/
+void sum(int *i, int y) {
+    *i = *i + y;
+}</code></pre>
+
+                        <pre><code contenteditable>&gt;&gt;&gt; import ctypes
+&gt;&gt;&gt; lib = ctypes.CDLL("./sample1.so")
+&gt;&gt;&gt; x,y = ctypes.c_int(2), ctypes.c_int(4)
+&gt;&gt;&gt; lib.sum(ctypes.pointer(x), y)
+546986832
+&gt;&gt;&gt; print(x, x.value)
+c_int(6) 6</code></pre>
+                    </section>
+
+                    <section>
                         <h2>Real example (py-mhash)</h2>
                         <pre><code>import ctypes
 import ctypes.util
