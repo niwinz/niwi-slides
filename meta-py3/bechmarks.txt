@@ -1,0 +1,17 @@
+~$ python -m timeit -s "from struct00_basic import Person" \
+                       "Person('H', 20)"
+100000 loops, best of 3: 3.25 usec per loop
+
+~$ python -m timeit -s "from struct04_descriptors import Person" \
+                       "Person('H', 20)"
+100000 loops, best of 3: 10.76 usec per loop
+
+
+~$ python -m timeit -s "from struct05_descriptors import Person" \
+                       "Person('H', 20)"
+100000 loops, best of 3: 6.22 usec per loop
+
+~$ python -m timeit -s "from struct06_descriptors import Person" \
+                       "Person('H', 20)"
+100000 loops, best of 3: 3.48 usec per loop
+

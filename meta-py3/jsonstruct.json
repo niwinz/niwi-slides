@@ -1,0 +1,9 @@
+[
+    {
+        "name": "Foo",
+        "fields": [
+            {"name": "foo", "type": "Integer"},
+            {"name": "bar", "type": "String"}
+        ]
+    }
+]
