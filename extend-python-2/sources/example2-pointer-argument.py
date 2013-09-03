@@ -4,7 +4,7 @@ import ctypes
 
 c_lib = ctypes.CDLL("./libsample.so")
 
-_divide = c_lib.div
+_divide = c_lib.divide
 _divide.argtypes = (ctypes.c_int, ctypes.c_int,
                     ctypes.POINTER(ctypes.c_int))
 _divide.restype = ctypes.c_int
