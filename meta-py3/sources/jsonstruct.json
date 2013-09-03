@@ -1,0 +1,15 @@
+[
+    {
+        "name": "Foo",
+        "fields": [
+            {"name": "foo", "type": "Integer"},
+            {"name": "bar", "type": "Integer"}
+        ]
+    },
+    {
+        "name": "Person",
+        "fields": [
+            {"name": "age", "type": "Integer"}
+        ]
+    }
+]
