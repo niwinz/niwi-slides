@@ -12,5 +12,5 @@ _divide.restype = ctypes.c_int
 
 def divide(x:int, y:int) -> int:
     rest = ctypes.c_int()
-    result = _divide(x, y, rest)
+    result = _divide(x, y, ctypes.byref(rest))
     return result, rest.value

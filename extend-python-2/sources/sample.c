@@ -6,7 +6,7 @@
  * Simple example
 */
 
-double gcd(int x, int y) {
+int gcd(int x, int y) {
     int g = y;
     while (x > 0) {
         g = x;

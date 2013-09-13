@@ -2,7 +2,7 @@
 
 from cffi import FFI
 ffi = FFI()
-ffi.cdef("double avg(double *data, int length);")
+ffi.cdef("double avg(double*, int);")
 
 c_lib = ffi.dlopen("./libsample.so")
 
