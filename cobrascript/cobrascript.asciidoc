@@ -8,7 +8,7 @@ Andrey Antukh <niwi@niwi.be>
 CobraScript
 -----------
 
-Simple experiment with translating a basic python AST to JavaScript with human-readable output (it works like CoffeScript, but with Python syntax).
+Simple experiment with translating a basic Python AST to JavaScript with human-readable output (it works like CoffeScript, but with Python syntax).
 
 
 
