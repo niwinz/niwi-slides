@@ -1,0 +1,359 @@
+CobraScript
+===========
+Andrey Antukh <niwi@niwi.be>
+0.1.0, 2014-01-20
+
+:toc:
+
+CobraScript
+-----------
+
+Simple experiment of translate basic python ast to javascript with output than can be +
+read by humans (it works like coffescript, but with python syntax).
+
+
+
+Goals/Features
+~~~~~~~~~~~~~~
+
+- Not intends to be python interpreter.
+- Translated code should be readable.
+- Translated code should be good javascript.
+- Only python3 syntax (no additional python ast/lexer extending).
+- Native javascript performance (no overhead).
+
+Overview: Variable assignment
+-----------------------------
+
+.CobraScript:
+[source,python]
+----
+somenumber = 22
+some_string = "Hello"
+----
+
+.Javascript
+[source,js]
+----
+var somenumber, some_string;
+somenumber = 22;
+some_string = "Hello";
+----
+
+
+Overview: Dict and Lists
+------------------------
+
+.CobraScript
+[source,python]
+----
+mylist = [1, 2, 3, 4]
+
+mydict = {
+    "foo": 1,
+    "bar": [2,3,4]
+}
+----
+
+.Javascript
+[source,js]
+----
+var mylist, mydict;
+mylist = [1,2,3,4];
+mydict = {
+    "foo": 1,
+    "bar": [1,2,3]
+}
+----
+
+Overview: Functions and Lambda's
+--------------------------------
+
+.CobraScript
+[source,python]
+----
+func1 = lambda x: x*2
+
+def func2():
+    return 2
+----
+
+.Javascript
+[source,js]
+----
+var func1, func2;
+
+func1 = function(x) {
+    return x*2;
+}
+func2 = function() {
+    return 2;
+}
+----
+
+
+Overview: If, Elif and Else
+---------------------------
+
+.CobraScript
+[source,python]
+----
+if x > y:
+    return x
+elif x < y:
+    return y
+else:
+    return 0
+----
+
+.Javascript
+[source,js]
+----
+if (x > y) {
+    return x;
+} else if (x < y) {
+    return y;
+} else {
+    return 0;
+}
+----
+
+Overview: Loops
+---------------
+
+.CobraScript
+[source,python]
+----
+for item in [1,2,3,4,5]:
+    console.log(item)
+
+while 2 > a:
+    console.log(1)
+----
+
+.Javascript
+[source,js]
+----
+var item, ref_0, ref_1;
+for (ref_0 = 0, ref_1 = [1,2,3,4,5]; ref_0 < ref_1.length; ref_0++) {
+    item = ref_1[ref_0];
+    console.log(item);
+}
+
+while (2 > a) {
+    console.log(1);
+}
+----
+
+
+Overview: Multiple Assignation
+------------------------------
+
+.CobraScript
+[source,python]
+----
+a, b = 1, 2
+----
+
+.Javascript
+[source,js]
+----
+var _ref_0;
+_ref_0 = [1,2];
+a = _ref_0[0];
+b = _ref_0[1];
+----
+
+
+Overview: Decorators
+--------------------
+
+.CobraScript
+[source,python]
+----
+def debug(func):
+    def _decorator():
+        console.log("call....")
+        return func.apply(null, arguments)
+
+    return _decorator
+
+@debug
+def sum(a1, a2, a3):
+    return a1 + a2 + a3
+
+console.log(sum(1,2,3))
+----
+
+.Javascript
+[source,js]
+----
+var debug, sum;
+debug = function(func) {
+    var _decorator;
+    _decorator = function() {
+        console.log("call....");
+        return func.apply(null, arguments);
+    };
+    return _decorator;
+};
+sum = function(a1, a2, a3) {
+    return (a1 + a2) + a3;
+};
+sum = debug(sum);
+console.log(sum(1, 2, 3));
+----
+
+Overview: classes
+------------------
+
+.CobraScript
+[source,python]
+----
+class MyClass:
+    def __init__(x):
+        this.x = x
+
+    def foo():
+        return this.xq
+----
+
+.Javascript
+[source,js]
+----
+var MyClass, foo;
+MyClass = (function() {
+    var classref_0;
+    classref_0 = function(x) {
+        this.x = x;
+    };
+    classref_0.prototype.foo = function() {
+        return this.x;
+    };
+    return classref_0;
+})();
+----
+
+Common use cases: Assign to global object
+-----------------------------------------
+
+All compiled cobrascript files are wrapped in one closure for avoid
+namespace polution. But some times we need assign some this to global scope.
+
+CobraScript hanldes it explicitly with special import.
+
+._somefile.cobra_
+[source,python]
+----
+import _global as g
+f.some_variable = 2
+----
+
+._somefile.js_
+[source,js]
+----
+(function()
+    var g;
+    g = this;
+    g.some_variable = 2;
+}).call(this);
+----
+
+Common use cases: new operator
+------------------------------
+
+Python syntax can not has new operator, in contrary to javascript. Additionally, 
+python does not has clear distinction between function call and creating new instance.
+
+CobraScript has this approach for solve this:
+
+._somefile.cobra_
+[source,python]
+----
+import _new as new_instance
+instance = new_instance(SomeClass, "param1");
+----
+
+._somefile.js_
+[source,js]
+----
+(function() {
+    var instance, new_instance;
+    new_instance = function() {
+        // Some special function injected
+        // by cobrascript compiler
+    };
+
+    instance = new_instance(SomeClass, "param1");
+}).call(this);
+----
+
+Common use cases: jQuery events
+-------------------------------
+
+.CobraScript
+[source,python]
+----
+def on(el, signal):
+    def _decorator(func):
+        el.on(signal, func)
+            return func
+    return _decorator
+
+el = jQuery("a#some-id")
+
+@on(el, "click")
+def on_click(event):
+    event.preventDefault()
+    console.log("button clicked")
+----
+
+Command line interface
+----------------------
+
+[source,text]
+----
+usage: cobrascript [-h] [-g] [-w] [-o outputfile.js] [-b] [-j]
+                   [--indent INDENT] [--auto-camelcase]
+                   input.py [input.py ...]
+
+Python to Javascript translator.
+
+positional arguments:
+  input.py              A list of python files for translate.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g, --debug           Activate debug mode (only for developers).
+  -w, --warnings        Show statick analizer warnings.
+  -o outputfile.js, --output outputfile.js
+                        Set output file (by default is stdout).
+  -b, --bare            Compile without a toplevel closure.
+  -j, --join            Join python files before compile.
+  --indent INDENT       Set default output indentation level.
+  --auto-camelcase      Convert all identifiers to camel case.
+----
+
+
+Missing
+-------
+
+- Special symbols translating like jQuery *$* +
++
+The best approach seems to be: translate \_DOLLAR_ to *$*
+
+- Class inheritance.
+
+Who uses cobrascript
+--------------------
+
+It just an experiment! And no body uses it!
+
+FALSE! https://github.com/jespino/cobraColorPicker/blob/master/cobraColorPicker.cobra
+
+The End
+-------
+
+Github: https://github.com/niwibe/cobrascript
+
+*Quenstions?*
