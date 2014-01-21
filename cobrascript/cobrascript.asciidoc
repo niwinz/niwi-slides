@@ -8,19 +8,18 @@ Andrey Antukh <niwi@niwi.be>
 CobraScript
 -----------
 
-Simple experiment of translate basic python ast to javascript with output than can be +
-read by humans (it works like coffescript, but with python syntax).
+Simple experiment with translating a basic python AST to JavaScript with human-readable output (it works like CoffeScript, but with Python syntax).
 
 
 
 Goals/Features
 ~~~~~~~~~~~~~~
 
-- Not intends to be python interpreter.
+- Doesn't intend to be a Python interpreter.
 - Translated code should be readable.
-- Translated code should be good javascript.
-- Only python3 syntax (no additional python ast/lexer extending).
-- Native javascript performance (no overhead).
+- Translated code should be good, idiomatic javascript.
+- Only Python 3 syntax (no need to extend Python AST/lexer).
+- Native JavaScript performance (zero overhead).
 
 Overview: Variable assignment
 -----------------------------
@@ -41,7 +40,7 @@ some_string = "Hello";
 ----
 
 
-Overview: Dict and Lists
+Overview: Dicts and Lists
 ------------------------
 
 .CobraScript
@@ -237,16 +236,16 @@ MyClass = (function() {
 Common use cases: Assign to global object
 -----------------------------------------
 
-All compiled cobrascript files are wrapped in one closure for avoid
-namespace polution. But some times we need assign some this to global scope.
+All compiled cobrascript files are wrapped in one closure for avoiding
+namespace polution. But some times we need to declare variables inside the global scope.
 
-CobraScript hanldes it explicitly with special import.
+CobraScript handles it explicitly with a special import.
 
 ._somefile.cobra_
 [source,python]
 ----
 import _global as g
-f.some_variable = 2
+g.some_variable = 2
 ----
 
 ._somefile.js_
@@ -262,10 +261,10 @@ f.some_variable = 2
 Common use cases: new operator
 ------------------------------
 
-Python syntax can not has new operator, in contrary to javascript. Additionally, 
-python does not has clear distinction between function call and creating new instance.
+Python syntax doesn't have a new operator, as opossed to javascript. Additionally, 
+Python doesn't make a distinction between function calls and creating new instances.
 
-CobraScript has this approach for solve this:
+CobraScript takes the following approach for solving this:
 
 ._somefile.cobra_
 [source,python]
@@ -340,14 +339,14 @@ Missing
 
 - Special symbols translating like jQuery *$* +
 +
-The best approach seems to be: translate \_DOLLAR_ to *$*
+The best approach seems to be translating \_DOLLAR_ to *$*
 
-- Class inheritance.
+- Inheritance.
 
 Who uses cobrascript
 --------------------
 
-It just an experiment! And no body uses it!
+It's just an experiment! And nobody uses it!
 
 FALSE! https://github.com/jespino/cobraColorPicker/blob/master/cobraColorPicker.cobra
 
@@ -356,4 +355,4 @@ The End
 
 Github: https://github.com/niwibe/cobrascript
 
-*Quenstions?*
+*Questions?*
