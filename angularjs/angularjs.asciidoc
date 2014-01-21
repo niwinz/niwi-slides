@@ -1,0 +1,641 @@
+AngularJS
+=========
+Andrey Antukh <niwi@niwi.be>
+0.1.0, 2014-01-20
+
+:toc:
+
+image:images/angularjs.jpg[width="1820"]
+
+++++
+<script src="js/jquery-2.0.3.min.js"></script>
+<script src="js/moment.min.js"></script>
+<script src="js/angular.min.js"></script>
+++++
+
+Why AngularJS?
+--------------
+
+- Clear separation between concepts (controllers, views, services, models, ...)
+- Two-Way data bindings and scopes.
+- Reusable components/Widgets (Directives)
+- Modules
+- Dependency Injection
+
+
+Common AngularJS Achitecture
+----------------------------
+
+image:images/angular-architecture.png[]
+
+
+Some theory: Scope
+------------------
+
+*What is it?*
+
+- Is a link between controller and view (template)
+- Represented as logical tree over DOM.
+
+image:images/scope.png[Representacion grafica de scopes en Taiga]
+
+
+Some theory: Data Binding
+-------------------------
+
+Is an automatic way of updating the view whenever the model changes,
+as well as updating the model whenever the view changes. 
+
+This is awesome because it eliminates DOM manipulation from the list of 
+things you have to worry about.
+
+image:images/concepts-databinding1.png[]
+
+
+Some theory: Data Binding
+-----------------------------
+
+Controllers are the behavior behind the DOM elements. 
+
+AngularJS lets you express the behavior in a clean readable form without
+the usual boilerplate of updating the DOM, registering callbacks or 
+watching model changes.
+
+image:images/concepts-databinding2.png[]
+
+
+(Not) Practical examples: hello world
+-------------------------------------
+
+[source,html]
+----
+<!DOCTYPE html>
+<html ng-app>
+<head>
+    <script src="jquery.js"></script>
+    <script src="angular.js"></script>
+</head>
+<body ng-init="name='Pepe'">
+    <p>Hello {{ name }}</p>
+</body>
+</html>
+----
+
+*_Demo_*
+
+++++
+<div ng-app ng-init="name='Pepe'">
+    <p>Hello {{ name }}</p>
+</div>
+++++
+
+
+
+Practical examples: Modules and controllers
+-------------------------------------------
+
+._controllers.js_
+[source,js]
+----
+var Controller1 = function() {
+    this.counter = 1;
+    this.incrementCounter = function() {
+        this.counter += 1;
+    };
+};
+
+var module = angular.module("myapp1", []);
+module.controller("Controller1", [Controller1]);
+----
+
+._index.html_
+[source,html]
+----
+<div id="myapp1">
+    <div ng-controller="Controller1 as cntctrl">
+        <p>Current counter value: {{ cntctrl.counter }}</p>
+        <input type="button" ng-click="cntctrl.incrementCounter()" value="Increment"></input>
+    </div>
+</div>
+----
+
+*_Demo_*
+
+++++
+<div id="myapp1">
+    <div ng-controller="Controller1 as cntctrl">
+        <p>Current counter value: {{ cntctrl.counter }}</p>
+        <input type="button" ng-click="cntctrl.incrementCounter()" value="Increment"></input>
+    </div>
+</div>
+<script>
+(function() {
+    var Controller1 = function() {
+        this.counter = 1;
+        this.incrementCounter = function() {
+            this.counter += 1;
+        };
+    };
+
+    var module = angular.module("myapp1", []);
+    module.controller("Controller1", [Controller1]);
+    angular.bootstrap(angular.element("#myapp1"), ['myapp1']);
+}).call(this);
+</script>
+++++
+
+
+Practical examples: Nested controllers/scopes
+---------------------------------------------
+
+._index.html_
+[source,html]
+----
+<div id="myapp2">
+    <div ng-controller="Controller1 as ctrl1">
+        <p>Current counter value: {{ ctrl1.counter }}</p>
+
+        <div ng-controller="Controller1 as ctrl2">
+
+            <p>Current counter value: {{ ctrl2.counter }}</p>
+
+            <input type="button" ng-click="ctrl1.incrementCounter()" value="Increment outer"></input>
+            <input type="button" ng-click="ctrl2.incrementCounter()" value="Increment inner"></input>
+        </div>
+    </div>
+</div>
+----
+
+
+*_Demo_*
+
+++++
+<div id="myapp2">
+    <div ng-controller="Controller1 as ctrl1">
+        <p>Current counter value: {{ ctrl1.counter }}</p>
+        <div ng-controller="Controller1 as ctrl2">
+            <p>Current counter value: {{ ctrl2.counter }}</p>
+            <input type="button" ng-click="ctrl1.incrementCounter()" value="Increment outer"></input>
+            <input type="button" ng-click="ctrl2.incrementCounter()" value="Increment inner"></input>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var Controller1 = function() {
+        this.counter = 1;
+        this.incrementCounter = function() {
+            this.counter += 1;
+        };
+    };
+
+    var module = angular.module("myapp2", []);
+    module.controller("Controller1", [Controller1]);
+
+    angular.bootstrap(angular.element("#myapp2"), ['myapp2']);
+}).call(this);
+</script>
+++++
+
+
+Practical examples: module/app entry point (the main function)
+--------------------------------------------------------------
+
+*Bonus:* First look to angularjs dependency injection.
+
+._app.js_
+[source,js]
+----
+var init = function($rootScope) {
+    $rootScope.hello = "Hello World";
+};
+
+angular.module("myapp3.controllers", []);
+angular.module("myapp3", ["myapp3.controllers"])
+       .run(["$rootScope", init]);
+angular.bootstrap(angular.element("#myapp3"), ['myapp3']);
+----
+
+
+._index.html_
+[source,html]
+----
+<div id="myapp3">
+    {{ hello }}
+</div>
+----
+
+*_Demo_*
+
+++++
+<div id="myapp3">
+    {{ hello }}
+</div>
+<script>
+(function() {
+    var init = function($rootScope) {
+        $rootScope.hello = "Hello World";
+    };
+
+    angular.module("myapp3.controllers", []);
+    angular.module("myapp3", ["myapp3.controllers"])
+           .run(["$rootScope", init]);
+    angular.bootstrap(angular.element("#myapp3"), ['myapp3']);
+}).call(this);
+</script>
+++++
+
+
+Practical examples: Scope events and events propagation
+-------------------------------------------------------
+
+._index.html_
+[source,html]
+----
+<div id="myapp4">
+    <p>RootScope events received: {{ received }}</p>
+    <div ng-controller="Controller1 as ctrl1" style="border: red 1px solid; padding:10px;">
+
+        <p>(ctrl1 $scope) events received: {{ ctrl1.getReceived() }}</p>
+
+        <input type="button" ng-click="ctrl1.emitEvents()" value="$emit"></input>
+        <input type="button" ng-click="ctrl1.broadcastEvents()" value="$broadcast"></input>
+
+        <div ng-controller="Controller1 as ctrl2" style="border: red 1px solid;">
+            <p>(ctrl2 $scope) events received: {{ ctrl2.getReceived() }}</p>
+        </div>
+    </div>
+</div>
+----
+
+._app.js_
+[source,js]
+----
+var Controller1 = function($scope) {
+    var received = 0;
+
+    $scope.$on("event1", function() { received += 1; });
+
+    this.emitEvents = function() {
+        $scope.$emit("event1");
+    };
+
+    this.broadcastEvents = function() {
+        $scope.$broadcast("event1");
+    };
+
+    this.getReceived = function() {
+        return received;
+    };
+};
+
+var module = angular.module("myapp4", []);
+module.controller("Controller1", ["$scope", Controller1]);
+module.run(["$rootScope", function($rootScope) {
+    $rootScope.received = 0;
+    $rootScope.$on("event1", function() { $rootScope.received += 1; });
+}]);
+
+angular.bootstrap(angular.element("#myapp4"), ['myapp4']);
+----
+
+*_Demo_*
+
+++++
+<div id="myapp4">
+    <p>RootScope events received: {{ received }}</p>
+    <div ng-controller="Controller1 as ctrl1" style="border: red 1px solid; padding:10px;">
+        <p>(ctrl1 $scope) events received: {{ ctrl1.getReceived() }}</p>
+        <input type="button" ng-click="ctrl1.emitEvents()" value="$emit"></input>
+        <input type="button" ng-click="ctrl1.broadcastEvents()" value="$broadcast"></input>
+        <div ng-controller="Controller1 as ctrl2" style="border: red 1px solid;">
+            <p>(ctrl2 $scope) events received: {{ ctrl2.getReceived() }}</p>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var Controller1 = function($scope) {
+        var received = 0;
+
+        $scope.$on("event1", function() { received += 1; });
+
+        this.emitEvents = function() {
+            $scope.$emit("event1");
+        };
+
+        this.broadcastEvents = function() {
+            $scope.$broadcast("event1");
+        };
+
+        this.getReceived = function() {
+            return received;
+        };
+    };
+
+    var module = angular.module("myapp4", []);
+    module.controller("Controller1", ["$scope", Controller1]);
+    module.run(["$rootScope", function($rootScope) {
+        $rootScope.received = 0;
+        $rootScope.$on("event1", function() { $rootScope.received += 1; });
+    }]);
+
+    angular.bootstrap(angular.element("#myapp4"), ['myapp4']);
+}).call(this);
+</script>
+++++
+
+
+Practical examples: Introduction to Directives
+----------------------------------------------
+
+._app.js_
+[source,js]
+----
+var HelloWorldDirectiveBuilder = function() {
+    return {
+        restrict: "E",
+        scope: {},
+        template: "Hello {{ kk }}!",
+        link: function(scope, element, attrs) {
+            scope.kk = attrs.kk;
+        }
+    };
+};
+
+var module = angular.module("myapp5", []);
+module.directive("helloWorld", HelloWorldDirectiveBuilder);
+angular.bootstrap(angular.element("#myapp5"), ['myapp5']);
+----
+
+._index.html_
+[source,html]
+----
+<div id="myapp5">
+    <hello-world kk="Pepe" />
+</div>
+----
+
+*_Demo_*
+
+++++
+<div id="myapp5">
+    <hello-world kk="Pepe" />
+</div>
+
+<script>
+(function() {
+    var HelloWorldDirectiveBuilder = function() {
+        return {
+            restrict: "E",
+            scope: {},
+            template: "Hello {{ kk }}!",
+            link: function(scope, element, attrs) {
+                scope.kk = attrs.kk;
+            }
+        };
+    };
+
+    var module = angular.module("myapp5", []);
+    module.directive("helloWorld", HelloWorldDirectiveBuilder);
+    angular.bootstrap(angular.element("#myapp5"), ['myapp5']);
+}).call(this);
+</script>
+++++
+
+
+Practical examples: Directives and controllers
+----------------------------------------------
+
+._app.js_
+[source,js]
+----
+var MyCurrentTimeDirectiveBuilder = function($interval) {
+    return {
+        link: function(scope, element, attrs) {
+            var format, timeoutId;
+            var updateTime = function() { element.text(moment().format(format)); };
+
+            scope.$watch(attrs.myCurrentTime, function(value) {
+                format = value;
+                updateTime();
+            });
+
+            element.on('$destroy', function() {
+                $interval.cancel(timeoutId);
+            });
+
+            timeoutId = $interval(function() {
+                updateTime();
+            }, 1000);
+        }
+    };
+};
+
+var Ctrl = function($scope) {
+    $scope.format = "MMMM Do YYYY, h:mm:ss a";
+};
+
+var module = angular.module("myapp6", []);
+module.directive("myCurrentTime", ["$interval", MyCurrentTimeDirectiveBuilder]);
+module.controller("Ctrl", ["$scope", Ctrl]);
+
+angular.bootstrap(angular.element("#myapp6"), ['myapp6']);
+----
+
+._index.html_
+[source,html]
+----
+<div id="myapp6" ng-controller="Ctrl">
+      Current time is: <span my-current-time="format"></span> <hr />
+      <input type="button" ng-click="format='MMMM Do YYYY, h:mm:ss a'" value="MMMM Do YYYY, h:mm:ss a" />
+      <input type="button" ng-click="format='h:mm:ss a'" value="h:mm:ss a" />
+      <input type="button" ng-click="format='LLL'" value="LLL" />
+</div>
+----
+
+++++
+<div id="myapp6" ng-controller="Ctrl">
+      Current time is: <span my-current-time="format"></span> <hr />
+      <input type="button" ng-click="format='MMMM Do YYYY, h:mm:ss a'" value="MMMM Do YYYY, h:mm:ss a" />
+      <input type="button" ng-click="format='h:mm:ss a'" value="h:mm:ss a" />
+      <input type="button" ng-click="format='LLL'" value="LLL" />
+</div>
+
+<script>
+(function() {
+    var MyCurrentTimeDirectiveBuilder = function($interval) {
+        return {
+            link: function(scope, element, attrs) {
+                var format, timeoutId;
+                var updateTime = function() { element.text(moment().format(format)); };
+
+                scope.$watch(attrs.myCurrentTime, function(value) {
+                    format = value;
+                    updateTime();
+                });
+
+                element.on('$destroy', function() {
+                    $interval.cancel(timeoutId);
+                });
+
+                timeoutId = $interval(function() {
+                    updateTime();
+                }, 1000);
+            }
+        };
+    };
+
+    var Ctrl = function($scope) {
+        $scope.format = "MMMM Do YYYY, h:mm:ss a";
+    };
+
+    var module = angular.module("myapp6", []);
+    module.directive("myCurrentTime", ["$interval", MyCurrentTimeDirectiveBuilder]);
+    module.controller("Ctrl", ["$scope", Ctrl]);
+
+    angular.bootstrap(angular.element("#myapp6"), ['myapp6']);
+}).call(this);
+</script>
+++++
+
+
+Practical examples: services
+----------------------------
+
+._services/storage.js_
+[source,js]
+----
+var StorageService = function(backend) {
+    var get = function(key, _default) {
+        var value = backend.getItem(key)
+        if (value === null) {
+            return _default;
+        }
+
+        return JSON.parse(value);
+    };
+
+    var set = function(key, val) {
+        backend.setItem(key, JSON.stringify(val));
+    }
+
+    var remove = function(key) { backend.removeItem(key); };
+    var clear = function() { backend.clear(); };
+
+    this.get = get;
+    this.set = set;
+    this.remove = remove;
+    this.clear = clear;
+};
+
+var StorageServiceProvider = function() {
+    var _backend = sessionStorage;
+
+    this.setCustomBackend = function(backend) {
+        _backend = backend;
+    };
+
+    this.$get = ["$log", function($log) {
+        $log.info("Creating new StorageService");
+        return new StorageService(_backend);
+    }];
+};
+
+module = angular.module('myapp7', []);
+
+module.provider("storage", StorageServiceProvider);
+
+module.config(["storageProvider", function(storageProvider) {
+    storageProvider.setCustomBackend(localStorage);
+}])
+
+module.run(["storage", function(storage) {
+    storage.set("hello", "world");
+}]);
+----
+
+Builtin Angularjs Directives
+----------------------------
+
+Incomplete summary of angular builtin directives:
+
+*ng-click*
+~~~~~~~~~~
+
+It used for assign click event handler to one angular expression.
+One expression can be:
+
+- Call one function available on current scope.
+- Assign expression evaluation to scope variable.
+
+.Example
+[source,html]
+----
+<a href ng-click="foo = 2">Click me for assign 2 to scope</a>
+----
+
+*ng-repeat*
+~~~~~~~~~~~
+
+Similar to for loop but with xml syntax. Evaluates it body for each
+element evaluated in a expression
+
+.Example
+[source,html]
+----
+<section ng-repeat-start="item in items">
+    Hello {{ item }}
+</section>
+----
+
+This, with items as ["Pepe", "Alex"], will be evaluated to:
+
+[source,html]
+----
+<section class="ng-scope">
+    Hello Pepe
+</section>
+<section class="ng-scope">
+    Hello Alex
+</section>
+----
+
+*ng-class*
+~~~~~~~~~~
+
+Used to set dynamically a set of classes to dom element depending
+on expression evaluation.
+
+.Example
+[source,html]
+----
+<p ng-class="{strike: deleted, bold: important, red: error}">Map Syntax Example</p>
+
+<input type="checkbox" ng-model="deleted"> deleted (apply "strike" class)<br>
+<input type="checkbox" ng-model="important"> important (apply "bold" class)<br>
+<input type="checkbox" ng-model="error"> error (apply "red" class)
+----
+
+*_Demo_*
+
+++++
+<style type="text/css">
+.strike { text-decoration: line-through; }
+.bold { font-weight: bold; }
+.red { color: red; }
+</style>
+
+<div id="myapp8">
+    <p ng-class="\{strike: deleted, bold: important, red: error\}">Map Syntax Example</p>
+
+    <input type="checkbox" ng-model="deleted"> deleted (apply "strike" class)<br>
+    <input type="checkbox" ng-model="important"> important (apply "bold" class)<br>
+    <input type="checkbox" ng-model="error"> error (apply "red" class)
+</div>
+<script>
+(function() {
+    angular.bootstrap(angular.element("#myapp8"), []);
+}).call(this);
+</script>
+++++
