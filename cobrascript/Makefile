@@ -1,3 +1,3 @@
 all: doc
 doc:
-	asciidoc -b slidy -o cobrascript.html cobrascript.asciidoc
+	asciidoc -b slidy -o index.html cobrascript.asciidoc
