@@ -343,8 +343,8 @@ The best approach seems to be translating \_DOLLAR_ to *$*
 
 - Inheritance.
 
-Who uses cobrascript
---------------------
+Who uses cobrascript?
+---------------------
 
 It's just an experiment! And nobody uses it!
 
