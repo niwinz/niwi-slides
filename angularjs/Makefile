@@ -1,3 +1,3 @@
 all: doc
 doc:
-	asciidoc -b slidy -o angularjs.html angularjs.asciidoc
+	asciidoc -b slidy -o index.html angularjs.asciidoc
