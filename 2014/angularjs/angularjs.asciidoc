@@ -29,8 +29,8 @@ Common AngularJS Achitecture
 image:images/angular-architecture.png[]
 
 
-Some theory: Scope
-------------------
+Overview: Scope
+---------------
 
 *What is it?*
 
@@ -40,8 +40,8 @@ Some theory: Scope
 image:images/scope.png[Representacion grafica de scopes en Taiga]
 
 
-Some theory: Data Binding
--------------------------
+Overview: Data Binding
+----------------------
 
 Is an automatic way of updating the view whenever the model changes,
 as well as updating the model whenever the view changes. 
@@ -52,8 +52,8 @@ things you have to worry about.
 image:images/concepts-databinding1.png[]
 
 
-Some theory: Data Binding
------------------------------
+Overview: Data Binding
+----------------------
 
 Controllers are the behavior behind the DOM elements. 
 
