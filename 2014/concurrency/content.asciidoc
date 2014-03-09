@@ -13,7 +13,8 @@ Paradigms: Concurrency vs Paralellism
 - Parallelism is about doing lots of things at once.
 - Not the same, but related.
 - Concurrency is about structure, parallelism is about execution.
-- Concurrency provides a way to structure a solution to solve a problem that may (but not necessarily) be parallelizable.
+- Concurrency provides a way to structure a solution to solve a
+  problem that may (but not necessarily) be parallelizable.
 
 
 Paradigms: Reactive Programming
@@ -27,8 +28,8 @@ Can use *Event-Loop*, Threading or Both, ...
 
 Is mostly related to Event-Driven programming but is not same thing.
 
+Related paradigm: *Functional Reactive Programming*
 
-TODO: examples
 
 Paradigms: Event-Driven Programming
 -----------------------------------
@@ -37,7 +38,6 @@ Event-driven programming is a programming paradigm in which the flow of the prog
 
 Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
 
-TODO: examples
 
 Concepts: Async vs Sync
 -----------------------
@@ -53,7 +53,7 @@ Examples:
 
 *Async code implies concurrency but not always parallelism* (javascript event system as example)
 
-TODO: examples
+NOTE: Owner of api should retain of concrency behavior
 
 
 Concepts: Composability & Functional Programming
@@ -63,7 +63,7 @@ Nothing new, functional programming implies:
 
 - *immutablity*: Thread safe by default.
 - *persistent data strucutes*: removes unnecesary deep copy of objects.
-- *composability*: Small well separated composable components allows easy concurreny and enables parallelism.
+- *composability*: Small well separated composable components allows easy concurrency and enables parallelism.
 
 .Function definition
 [source, clojure]
@@ -92,6 +92,7 @@ Concepts: Callbacks
 
 Mainly bound to *Reactive programming*. But also used in event-driven programming languages like javascript.
 
+.WebSockets reactive behavior example:
 [source,js]
 ----
 var ws = new WebSocket("ws://host:port/path");
@@ -103,6 +104,13 @@ ws.addEventListener("error", function(event) {
     console.log("Error:", event);
 });
 ----
+
+Disadvantages:
+
+- Not composable as is.
+- With more complex logic, code is converted to Spaghetti ;)
+
+*Use a combination of coroutines, and composable reactive libraries*.
 
 
 Concepts: Shared/Isolated state
@@ -227,7 +235,7 @@ import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.Callable
 
 def executor = new ForkJoinPool(10)
-def future = executor.submit(new Callable<Integer> () {
+def future = executor.submit(new Callable<Integer>() {
     Integer call() {
         Thread.sleep(1000)
         return 1+2
@@ -237,6 +245,9 @@ def future = executor.submit(new Callable<Integer> () {
 // This blocks until task is finished;
 println "Result ${future.get()}"
 ----
+
+Guava-Libraries exposes much powerful futures: https://code.google.com/p/guava-libraries
+
 
 Concurrency primitives: Event-Loop
 ----------------------------------
@@ -292,25 +303,28 @@ loop.call_soon(check_tasks, loop)
 loop.run_forever()
 ----
 
+
 Concurrency primitives: Coroutines / Fibers
 -------------------------------------------
 
 Coroutines or Fibers represents a lightweigh user space execution unit. Them works like threads,
-but scheduled by user space.
+but scheduled on user space (can be executed/scheduled on many threads).
 
-*Fiber is an implementation of Coroutines*
+- *Fiber is an implementation of Coroutines*
+- *Goroutines is an implementation of Coroutines*
 
-Them can work over:
+Executes over:
 
 - Event-Loops (asyncio),
 - ThreadPool (Quasar, core.async, golang)
 
-Are well suitable for:
+Well suitable for high level concurrency models:
 
 - Actor model   (Akka, Quasar, Erlang/Elixir)
-- State Machine (core.async, Quasar (at bytecode level))
 - CSP           (core.async, Quasar, golang)
 
+
+*Allows build "sync" api for async computations*
 
 .*Python generators is an other (simpler) implementation of Coroutines*
 [source, python]
@@ -433,7 +447,7 @@ Concurrency models: CSP (Communicating sequential processes)
 
 *Concurrency model that enables parallelism*
 
-Primitives: Coroutines with Channels
+Primitives: *Coroutines with Channels*
 
 Advantages:
 
@@ -527,20 +541,163 @@ loop.run_until_complete(main())
 ----
 
 
-
-
-
-
 Concurrency models: Actors
 --------------------------
 
+Primitives: *Coroutines with unbound mailboxes (channels)*
 
-Reactive extensions
--------------------
+- Well suitable for distributed concurrency
+- *Is a concrete use case of CSP*
+- Breaks encapsulation: *actors needs know other actors for pass messages*
 
-TODO: RxJava, reactive
+[source, groovy]
+----
+def handlerActor = Actors.actor{
+    loop {
+        react { msg ->
+            println "Received: $msg";
+            reply "I've got $msg"
+        }
+    }
+}
+
+def reply1 = replyingActor.sendAndWait('Message 1')
+----
+
+Each actor can contain its own isolated state.
+
+You can build actors that runs an other actors.
+
+Actors almost always are build over coroutines and threadpools.
 
 
+Functional Reactive Programming
+-------------------------------
+
+*Owners of API should retain control of concurrency behavior*.
+
+[source,python]
+----
+class Repository(object):
+    def get_data() -> Future:
+        pass
+----
+
+Observations:
+
+- Exposes always async api.
+- Implementation can be blocking or non-blocking
+- Implementation can use eventloop, simple threadpool or combination of both.
+
+
+*RxJava*: a library for composing asynchronous programs using observable sequences.
+
+*Similar target that clojure core.async but with "implicit channels"*
+
+.Asynchronous observer
+[source,groovy]
+----
+getData().subscribe(
+    { data ->
+        println("Received: ${data}")
+    }, { exc ->
+        exc.printStackTrace()
+    }
+)
+----
+
+.Synchronous observable
+[source,groovy]
+----
+Observable<String> getData() {
+  return Observable.create({ observer ->
+    try {
+      def data = getDataFromNetwork()
+      observer.onNext(data)
+      observer.onComplete()
+    } catch (Exception e) {
+      observer.onError(e);
+    }
+  })
+}
+----
+
+.Asynchronous observable
+[source,groovy]
+----
+Observable<String> getData() {
+  return Observable.create({ observer ->
+    executor.submit(new Runnable() {
+      def void run() {
+        try {
+          def data = getDataFromNetwork();
+          observer.onNext(data)
+          observer.onComplete()
+        } catch (Exception e) {
+          observer.onError(e);
+        }
+      }
+    })
+  })
+}
+----
+
+.Asynchronous observable with multiple values
+[source,groovy]
+----
+Observable<String> getDataList() {
+  return Observable.create({ observer ->
+    executor.submit(new Runnable() {
+      def void run() {
+        try {
+          def data = getDataArrayFromNetwork();
+          data.each({
+            observer.onNext(it)
+          })
+          observer.onComplete()
+        } catch (Exception e) {
+          observer.onError(e);
+        }
+      }
+    })
+  })
+}
+----
+
+*Same interface, works for single values and collections*
+
+.Composable reactive sequences (a la core.async channels)
+[source,groovy]
+----
+getDataList()
+  .drop(10)
+  .take(5)
+  .map({ x -> x.toUpperCase() })
+  .subscribe({ msg ->
+    println(msg)
+  })
+----
+
+
+*RxJava provides a missing api for async computations for jvm languages*
+
+
+What to chose
+-------------
+
+- *There is no silver bullet*
+- *Use most natural approach for your technology/language/domain* +
+  (there are many STM implementations, but in Clojure it's idiomatic and part of the core)
+- *Much explained concepts can be combined!*
+
+Conclusion
+----------
+
+- Coroutines makes code more clear and removes unnecesary callback spaghetti.
+- Rx Extensions / CSP implementations (core.async, asyncio) helps structure the code for concurrency.
+- ThreadPools are not evil, and can be used for many purposes when you need execute some async code.
+- If you really want concurency, choice clojure, elixir or golang ;)
+- core.async is the most complete library: goroutines, csp, reactive extensions.
 
 The End
 -------
