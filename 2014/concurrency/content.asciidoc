@@ -62,6 +62,7 @@ Concepts: Composability & Functional Programming
 Nothing new, functional programming implies:
 
 - *immutablity*: Thread safe by default.
+- *persistent data strucutes*: removes unnecesary deep copy of objects.
 - *composability*: Small well separated composable components allows easy concurreny and enables parallelism.
 
 .Function definition
@@ -85,6 +86,7 @@ paralelized:
 This executes in parallel two threads, each one applyes lower-case and keywordize function for one element of
 shared state (initial vector) and finally join results.
 
+
 Concepts: Callbacks
 -------------------
 
@@ -107,7 +109,7 @@ Concepts: Shared/Isolated state
 -------------------------------
 
 - *Shared state* almost always related to concurrency.
-- *Isolated State* almos always related to parallelism
+- *Isolated State* almos always related to parallelism.
 
 Concepts: Shared state
 ----------------------
@@ -186,8 +188,6 @@ Disadvantages:
 
 Concurrency primitives: Threads
 -------------------------------
-
-A thread is execution unit that can be managed independently by an operating system scheduler.
 
 This is a low level concurrency primitive. Use the operating system threads capability for execute
 code asynchronously.
@@ -292,7 +292,6 @@ loop.call_soon(check_tasks, loop)
 loop.run_forever()
 ----
 
-
 Concurrency primitives: Coroutines / Fibers
 -------------------------------------------
 
@@ -304,13 +303,13 @@ but scheduled by user space.
 Them can work over:
 
 - Event-Loops (asyncio),
-- ThreadPool (Quasar, core.async)
+- ThreadPool (Quasar, core.async, golang)
 
 Are well suitable for:
 
-- Actor model   (Akka, Quasar)
+- Actor model   (Akka, Quasar, Erlang/Elixir)
 - State Machine (core.async, Quasar (at bytecode level))
-- CSP           (core.async, Quasar)
+- CSP           (core.async, Quasar, golang)
 
 
 .*Python generators is an other (simpler) implementation of Coroutines*
@@ -343,8 +342,6 @@ Yielding third value, and pause.
 In loop! Item obtained: 3
 Generator ends and stops here.
 ----
-
-Other examples:
 
 .Example using python3 asyncio coroutines over event-loop as scheduler
 [source, python]
@@ -384,11 +381,51 @@ loop.run_until_complete(main_task)
 (sleeping-counter "bar")
 ----
 
-*Can be viewed as sugar syntax for reactive callback based programming model:*
+*Can be used as sugar syntax for reactive callback based programming model:*
 
-Can be the defintive sugar syntax for reactive, callback based programming paradigm:
 
-TODO: examples of callback based code converted to secuential code using coroutine blocking primitives (jnanomsg)
+.Example using hipotetical callback based api
+[source,python]
+----
+# Step #3
+def on_query_success(cursor):
+    for item in cursor.fetchall():
+        print(item)
+
+# Step #2
+def on_connect(conn):
+    cur = conn.execute("SELECT 1;", on_query_success)
+
+# Step #1:
+connection = db.connect(url_params, on_connect)
+connection.ioloop.start()
+----
+
+.Same example but implementing much clear api using asyncio
+[source,python]
+----
+@asyncio.coroutine
+def connect(params):
+    future = Future()
+    db.connect(params, lambda c: future.set_result(c))
+    return future
+
+@asyncio.coroutine
+def query(conn, query):
+    future = Future()
+    conn.execute(query, lambda c: future.set_result(c))
+    return future
+
+@asyncio.coroutine
+def main():
+    conn = yield from connect("dbname=test")
+    curs = yield from query(conn, "SELECT 1;")
+
+    for item in cur.fetchall():
+        print(item)
+
+asyncio.get_event_loop().run_until_complete(main())
+----
 
 
 Concurrency models: CSP (Communicating sequential processes)
@@ -404,19 +441,96 @@ Advantages:
 - Communication is syncronization (no locks, no shared state)
 - Teorically use less memory than Actor Model.
 - Very common patern: unix pipes (but with steroids)
-
-
-
-
-
-
-
+- Abstract: Actor model can be build on to of CSP
 
 Best csp implementations: *Golang* and *Clojure*
 
 *CSP can be emulated very well with python asyncio and groovy gparse (but with very non semantic api)*
 
-.
+.Example CSP using python asyncio.
+[source, python]
+----
+from asyncio import coroutine, Queue
+import asyncio
+
+@coroutine
+def transformer(name, qin, qout):
+    while True:
+        yield from asyncio.sleep(0.5)
+        value = yield from qin.get()
+        yield from qout.put("{} !!! {} !!!".format(name, value))
+
+@coroutine
+def generator():
+    queue = Queue(1)
+
+    @coroutine
+    def _async_generator(q):
+        for x in range(100):
+            yield from q.put(str(x))
+
+    asyncio.async(_async_generator(queue))
+    return queue
+
+@asyncio.coroutine
+def main():
+    qin = yield from generator()
+    qout = Queue(1)
+
+    # Now you can run multiple parallel transformers over
+    # one generator and with one output.
+    asyncio.async(transformer("foo", qin, qout))
+    asyncio.async(transformer("bar", qin, qout))
+
+    while True:
+        value = yield from qout.get()
+        print("procesed:", value)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+----
+
+.Same example but using clojure core.async
+[source, clojure]
+----
+(require '[clojure.core.async :refer [go <!! <! >!
+                                      chan close!
+                                      merge go-loop]])
+
+(defn transformer
+  [name, input]
+  (let [output (chan 1)]
+    (go-loop []
+      (if-let [v (<! input)]
+        (do (>! output (str name " !!! " v " !!!"))
+            (recur))
+        (close! output)))
+    output))
+
+(defn generator []
+  (let [output (chan 1)]
+    (go
+      (dotimes [i 100]
+        (>! output (str i)))
+      (close! output))
+    output))
+
+(defn main
+  [& args]
+  (let [input  (generator)
+        output (merge [(transformer "foo" input)
+                       (transformer "bar" input)])]
+    (loop []
+      (when-let [received (<!! output)]
+        (println "Received:" received)
+        (recur)))))
+----
+
+
+
+
+
+
 Concurrency models: Actors
 --------------------------
 
