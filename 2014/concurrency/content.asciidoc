@@ -28,7 +28,15 @@ Can use *Event-Loop*, Threading or Both, ...
 
 Is mostly related to Event-Driven programming but is not same thing.
 
-Related paradigm: *Functional Reactive Programming*
+
+Problems:
+
+- Not composable as is.
+- Invites to have callback spaghetti.
+
+Solutions:
+
+- *Functional Reactive Programming*
 
 
 Paradigms: Event-Driven Programming
@@ -678,8 +686,73 @@ getDataList()
   })
 ----
 
-
 *RxJava provides a missing api for async computations for jvm languages*
+
+Libraries, paradigms, models
+----------------------------
+
+Many of libraries exposed on this slides implements multiple paradigms.
+
+Python3 asyncio
+~~~~~~~~~~~~~~~
+
+Good:
+
+- Has good reactive api with futures. Has futures with done callbacks.
+- Has ficilities for convert callback style code to coroutine code (sync code feeling)
+- Has low-level simple methods for access to epoll/kqueue (because works over event-loop)
+
+Bad:
+
+- Partially can emulate CSP with Queues, but is not idiomatic is not very composable.
+- Not implements FRP (does not have composable reactive callbacks)
+- Only works in one thread, execute something in other thread should be done explicitly (by default coroutines are only executed in one
+  thread and scheduled by event-loop).
+
+Groovy Gpars
+~~~~~~~~~~~~
+
+Good:
+
+- Has implementation for CSP and Actor Model.
+- Workflow over CSP (simple dsl for CSP)
+
+Bad:
+
+- Very unsemantic api.
+- Actors implementation is partial.
+- No coroutines implementation.
+
+
+JVM Quasar
+~~~~~~~~~~
+
+Good:
+
+- Real coroutine/fiber support on JVM.
+- Actor and CSP models.
+- Implements remote actors.
+
+Bad:
+
+- Requires additional java agent.
+
+
+
+Clojure core.async
+~~~~~~~~~~~~~~~~~~
+
+Good:
+
+- Full support of FRP (reac
+- Implements Goroutines (Coroutines)
+- One of the best CSP implementations (same as golang)
+
+Bad:
+
+- No Actor model by default (can be emulated with csp)
+
+
 
 
 What to chose
