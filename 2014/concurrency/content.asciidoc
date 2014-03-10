@@ -1,0 +1,705 @@
+Concurrenty is not parallelism
+==============================
+Andrey Antukh <niwi@niwi.be>
+0.1.0, 2014-03-08
+
+:toc:
+
+
+Paradigms: Concurrency vs Paralellism
+-------------------------------------
+
+- Concurrency is about dealing with lots of things at once.
+- Parallelism is about doing lots of things at once.
+- Not the same, but related.
+- Concurrency is about structure, parallelism is about execution.
+- Concurrency provides a way to structure a solution to solve a
+  problem that may (but not necessarily) be parallelizable.
+
+
+Paradigms: Reactive Programming
+-------------------------------
+
+Is a programming paradigm oriented around data flows and the propagation of change.
+
+Common pattern: *Observable*
+
+Can use *Event-Loop*, Threading or Both, ...
+
+Is mostly related to Event-Driven programming but is not same thing.
+
+Related paradigm: *Functional Reactive Programming*
+
+
+Paradigms: Event-Driven Programming
+-----------------------------------
+
+Event-driven programming is a programming paradigm in which the flow of the program is determined by events.
+
+Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
+
+
+Concepts: Async vs Sync
+-----------------------
+
+*Asynchronous programming* not exists as programming paradigm.
+
+Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
+
+Examples:
+
+- Reactive programming can be used asynchronously (or not)
+- Executuon of any code in a separate thread can be asynchronously (or not)
+
+*Async code implies concurrency but not always parallelism* (javascript event system as example)
+
+NOTE: Owner of api should retain of concrency behavior
+
+
+Concepts: Composability & Functional Programming
+------------------------------------------------
+
+Nothing new, functional programming implies:
+
+- *immutablity*: Thread safe by default.
+- *persistent data strucutes*: removes unnecesary deep copy of objects.
+- *composability*: Small well separated composable components allows easy concurrency and enables parallelism.
+
+.Function definition
+[source, clojure]
+----
+;; Complete useless, because
+;; we can use keyword function directly
+(def keywordize (fn [item] (keyword item)))
+(def lower-case (fn [item] (.toLowerCase item)))
+----
+
+Previously functions are pure and can be composed, executed concurently over shared state concurrently and
+paralelized:
+
+[source,clojure]
+----
+(pmap (comp keywordize lower-case) ["HELLO", "WORLD"])
+;; -> (:hello :world)
+----
+
+This executes in parallel two threads, each one applyes lower-case and keywordize function for one element of
+shared state (initial vector) and finally join results.
+
+
+Concepts: Callbacks
+-------------------
+
+Mainly bound to *Reactive programming*. But also used in event-driven programming languages like javascript.
+
+.WebSockets reactive behavior example:
+[source,js]
+----
+var ws = new WebSocket("ws://host:port/path");
+ws.addEventListener("message", function(event) {
+    console.log(event.data);
+});
+
+ws.addEventListener("error", function(event) {
+    console.log("Error:", event);
+});
+----
+
+Disadvantages:
+
+- Not composable as is.
+- With more complex logic, code is converted to Spaghetti ;)
+
+*Use a combination of coroutines, and composable reactive libraries*.
+
+
+Concepts: Shared/Isolated state
+-------------------------------
+
+- *Shared state* almost always related to concurrency.
+- *Isolated State* almos always related to parallelism.
+
+Concepts: Shared state
+----------------------
+
+Advantages:
+
+- Can be very fast.
+- Makes GlobalConsensus much easier to achieve
+- Makes passing around ReferenceObjects that much easier, especially if a pointer/reference valid in
+  one process is valid in another.
+
+Disadvantages:
+
+- Much more difficult to model and prove a system correct.
+- Requires lots of synchronization primitives (SynchronizationStrategies) to prevent race-conditions
+- Does not scale well to distributed systems, especially in the presence of unreliable connections
+  between processes (i.e. over a network).
+
+Possible approaches:
+
+- Use locks, mutexes and semaphores.
+- Use atomic variables for shared state.
+- Use software transactional memmory (stm)
+
+Problems with classic approach (locks...):
+
+- Locks do not composable
+- Locks breaks encapsulation (you need to know a lot!)
+- Taking too few locks
+- Taking too many locks
+- Taking the wrong locks
+- Taking locks in wrong order
+- Error recovery is hard
+
+Recommentation:
+
+- Use STM or atomic variables if you need deal with shared mutable state.
+- Use high level abstractions for lock less coordination like channels (CSP and Actors)
+
+
+.Example of hypothetical bank transaction using clojure STM.
+[source, clojure]
+----
+(defn make-transaction
+  [user1, user2, amount]
+  (let [account1 (get-account-for-user user1)
+        account2 (get-account-for-user user2)]
+
+    ;; This code block can be executed many times
+    ;; because it works like database serialized
+    ;; isolated transactions
+    (dosync
+      (retrieve-money account1 amount)
+      (put-money account2 amount))))
+----
+
+
+Concepts: Isolated State
+------------------------
+
+Advantages:
+
+- Easier to model; many theoretical models for this (CSP, Actor).
+- Communication is synchronization
+- No need to worry about mutual exclusion; as each process has its own state
+  which no other process may point to.
+- Models distributed systems very well.
+
+Disadvantages:
+
+- Can be slower compared to SharedStateConcurrency.
+- GlobalConsensus much more difficult to achieve.
+- Not works well with refereces, always pass copies of objects
+- Usually consumes much more memory.
+
+
+Concurrency primitives: Threads
+-------------------------------
+
+This is a low level concurrency primitive. Use the operating system threads capability for execute
+code asynchronously.
+
+*Almost all other concurrency primites works over threads.*
+
+[source, python]
+----
+def long_live_task(future):
+    result = generate_reports()
+    future.set_result(future)
+
+future = Future()
+thread = threading.Thread(target=long_live_task,
+                          args=[future])
+future.add_done_callback(lambda x: print("Finished:", x))
+----
+
+
+Concurrency primitives: ThreadPools
+-----------------------------------
+
+Also called Executor's or ExecutorService's.
+
+Simple abstraction over thread, that groups a set of threads with distinct purposes.
+
+Advantages:
+
+- Can be fixed size.
+- Reuses created threads.
+- Can stop unused threads.
+
+.Example using executor service with groovy
+[source,groovy]
+----
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.Callable
+
+def executor = new ForkJoinPool(10)
+def future = executor.submit(new Callable<Integer>() {
+    Integer call() {
+        Thread.sleep(1000)
+        return 1+2
+    }
+})
+
+// This blocks until task is finished;
+println "Result ${future.get()}"
+----
+
+Guava-Libraries exposes much powerful futures: https://code.google.com/p/guava-libraries
+
+
+Concurrency primitives: Event-Loop
+----------------------------------
+
+Technically is not concurrency primitive but works as is.
+
+*Mainly used for GUI and IO.*
+
+*For IO, combines well with threadpools.*
+
+Common user cases:
+
+- Web server: *Nginx*, *Jetty*
+- Network applications: *Tornado*, python *asyncio*, *Netty*
+- Gui (almost all gui libraries works with event-loops): Qt, GTK, Android UI, ...
+
+
+*You can not use thread blocking operations inside event-loop thread*
+
+[source, python]
+----
+import asyncio
+
+def print_and_repeat(loop):
+    print('Hello World')
+    loop.call_later(2, print_and_repeat, loop)
+
+loop = asyncio.get_event_loop()
+loop.call_soon(print_and_repeat, loop)
+loop.run_forever()
+----
+
+*Some long lived task can be spawned to an other thread for not block main eventloop thread.*
+
+[source, python]
+----
+import asyncio
+import time
+
+def slow_job():
+    time.sleep(20)
+
+def check_tasks(loop):
+    # Some function that returns slow_job randomly
+    task = get_task_if_exists()
+    if task:
+       loop.call_in_executor(slow_job, None)
+
+    loop.call_later(2, check_tasks, loop)
+
+loop = asyncio.get_event_loop()
+loop.call_soon(check_tasks, loop)
+loop.run_forever()
+----
+
+
+Concurrency primitives: Coroutines / Fibers
+-------------------------------------------
+
+Coroutines or Fibers represents a lightweigh user space execution unit. Them works like threads,
+but scheduled on user space (can be executed/scheduled on many threads).
+
+- *Fiber is an implementation of Coroutines*
+- *Goroutines is an implementation of Coroutines*
+
+Executes over:
+
+- Event-Loops (asyncio),
+- ThreadPool (Quasar, core.async, golang)
+
+Well suitable for high level concurrency models:
+
+- Actor model   (Akka, Quasar, Erlang/Elixir)
+- CSP           (core.async, Quasar, golang)
+
+
+*Allows build "sync" api for async computations*
+
+.*Python generators is an other (simpler) implementation of Coroutines*
+[source, python]
+----
+def number_generator():
+    print("Initialized generator.")
+    print("Yielding first value, and pause.")
+    yield 1
+    print("Yielding second value, and pause.")
+    yield 2
+    print("Yielding third value, and pause.")
+    yield 3
+    print("Generator ends and stops here.")
+
+for item in number_generator():
+    print("In loop! Item obtained:", item)
+----
+
+.Result of executing previosly example code
+[source, text]
+----
+niwi@niwi.be ~/# python examples/coroutines-generators.py
+Initialized generator.
+Yielding first value, and pause.
+In loop! Item obtained: 1
+Yielding second value, and pause.
+In loop! Item obtained: 2
+Yielding third value, and pause.
+In loop! Item obtained: 3
+Generator ends and stops here.
+----
+
+.Example using python3 asyncio coroutines over event-loop as scheduler
+[source, python]
+----
+import asyncio
+
+@asyncio.coroutine
+def sleeping_counter(name):
+    for x in range(10):
+        yield from asyncio.sleep(1)
+        print("{}:{}".format(name, x))
+
+tasks = [
+    sleeping_counter("foo"),
+    sleeping_counter("bar"),
+]
+
+main_task = asyncio.wait(tasks)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main_task)
+----
+
+.Same example but using clojure core.async
+[source,clojure]
+----
+(require '[clojure.core.async :refer [go <! timeout]])
+
+(defn sleeping-counter
+  [name]
+  (go
+    (dotimes [i 10]
+      (<! (timeout 1000))
+      (println (format "%s:%s" name i)))))
+
+(sleeping-counter "foo")
+(sleeping-counter "bar")
+----
+
+*Can be used as sugar syntax for reactive callback based programming model:*
+
+
+.Example using hipotetical callback based api
+[source,python]
+----
+# Step #3
+def on_query_success(cursor):
+    for item in cursor.fetchall():
+        print(item)
+
+# Step #2
+def on_connect(conn):
+    cur = conn.execute("SELECT 1;", on_query_success)
+
+# Step #1:
+connection = db.connect(url_params, on_connect)
+connection.ioloop.start()
+----
+
+.Same example but implementing much clear api using asyncio
+[source,python]
+----
+@asyncio.coroutine
+def connect(params):
+    future = Future()
+    db.connect(params, lambda c: future.set_result(c))
+    return future
+
+@asyncio.coroutine
+def query(conn, query):
+    future = Future()
+    conn.execute(query, lambda c: future.set_result(c))
+    return future
+
+@asyncio.coroutine
+def main():
+    conn = yield from connect("dbname=test")
+    curs = yield from query(conn, "SELECT 1;")
+
+    for item in cur.fetchall():
+        print(item)
+
+asyncio.get_event_loop().run_until_complete(main())
+----
+
+
+Concurrency models: CSP (Communicating sequential processes)
+------------------------------------------------------------
+
+*Concurrency model that enables parallelism*
+
+Primitives: *Coroutines with Channels*
+
+Advantages:
+
+- Very composable (each component known nothink about other components)
+- Communication is syncronization (no locks, no shared state)
+- Teorically use less memory than Actor Model.
+- Very common patern: unix pipes (but with steroids)
+- Abstract: Actor model can be build on to of CSP
+
+Best csp implementations: *Golang* and *Clojure*
+
+*CSP can be emulated very well with python asyncio and groovy gparse (but with very non semantic api)*
+
+.Example CSP using python asyncio.
+[source, python]
+----
+from asyncio import coroutine, Queue
+import asyncio
+
+@coroutine
+def transformer(name, qin, qout):
+    while True:
+        yield from asyncio.sleep(0.5)
+        value = yield from qin.get()
+        yield from qout.put("{} !!! {} !!!".format(name, value))
+
+@coroutine
+def generator():
+    queue = Queue(1)
+
+    @coroutine
+    def _async_generator(q):
+        for x in range(100):
+            yield from q.put(str(x))
+
+    asyncio.async(_async_generator(queue))
+    return queue
+
+@asyncio.coroutine
+def main():
+    qin = yield from generator()
+    qout = Queue(1)
+
+    # Now you can run multiple parallel transformers over
+    # one generator and with one output.
+    asyncio.async(transformer("foo", qin, qout))
+    asyncio.async(transformer("bar", qin, qout))
+
+    while True:
+        value = yield from qout.get()
+        print("procesed:", value)
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+----
+
+.Same example but using clojure core.async
+[source, clojure]
+----
+(require '[clojure.core.async :refer [go <!! <! >!
+                                      chan close!
+                                      merge go-loop]])
+
+(defn transformer
+  [name, input]
+  (let [output (chan 1)]
+    (go-loop []
+      (if-let [v (<! input)]
+        (do (>! output (str name " !!! " v " !!!"))
+            (recur))
+        (close! output)))
+    output))
+
+(defn generator []
+  (let [output (chan 1)]
+    (go
+      (dotimes [i 100]
+        (>! output (str i)))
+      (close! output))
+    output))
+
+(defn main
+  [& args]
+  (let [input  (generator)
+        output (merge [(transformer "foo" input)
+                       (transformer "bar" input)])]
+    (loop []
+      (when-let [received (<!! output)]
+        (println "Received:" received)
+        (recur)))))
+----
+
+
+Concurrency models: Actors
+--------------------------
+
+Primitives: *Coroutines with unbound mailboxes (channels)*
+
+- Well suitable for distributed concurrency
+- *Is a concrete use case of CSP*
+- Breaks encapsulation: *actors needs know other actors for pass messages*
+
+[source, groovy]
+----
+def handlerActor = Actors.actor{
+    loop {
+        react { msg ->
+            println "Received: $msg";
+            reply "I've got $msg"
+        }
+    }
+}
+
+def reply1 = replyingActor.sendAndWait('Message 1')
+----
+
+Each actor can contain its own isolated state.
+
+You can build actors that runs an other actors.
+
+Actors almost always are build over coroutines and threadpools.
+
+
+Functional Reactive Programming
+-------------------------------
+
+*Owners of API should retain control of concurrency behavior*.
+
+[source,python]
+----
+class Repository(object):
+    def get_data() -> Future:
+        pass
+----
+
+Observations:
+
+- Exposes always async api.
+- Implementation can be blocking or non-blocking
+- Implementation can use eventloop, simple threadpool or combination of both.
+
+
+*RxJava*: a library for composing asynchronous programs using observable sequences.
+
+*Similar target that clojure core.async but with "implicit channels"*
+
+.Asynchronous observer
+[source,groovy]
+----
+getData().subscribe(
+    { data ->
+        println("Received: ${data}")
+    }, { exc ->
+        exc.printStackTrace()
+    }
+)
+----
+
+.Synchronous observable
+[source,groovy]
+----
+Observable<String> getData() {
+  return Observable.create({ observer ->
+    try {
+      def data = getDataFromNetwork()
+      observer.onNext(data)
+      observer.onComplete()
+    } catch (Exception e) {
+      observer.onError(e);
+    }
+  })
+}
+----
+
+.Asynchronous observable
+[source,groovy]
+----
+Observable<String> getData() {
+  return Observable.create({ observer ->
+    executor.submit(new Runnable() {
+      def void run() {
+        try {
+          def data = getDataFromNetwork();
+          observer.onNext(data)
+          observer.onComplete()
+        } catch (Exception e) {
+          observer.onError(e);
+        }
+      }
+    })
+  })
+}
+----
+
+.Asynchronous observable with multiple values
+[source,groovy]
+----
+Observable<String> getDataList() {
+  return Observable.create({ observer ->
+    executor.submit(new Runnable() {
+      def void run() {
+        try {
+          def data = getDataArrayFromNetwork();
+          data.each({
+            observer.onNext(it)
+          })
+          observer.onComplete()
+        } catch (Exception e) {
+          observer.onError(e);
+        }
+      }
+    })
+  })
+}
+----
+
+*Same interface, works for single values and collections*
+
+.Composable reactive sequences (a la core.async channels)
+[source,groovy]
+----
+getDataList()
+  .drop(10)
+  .take(5)
+  .map({ x -> x.toUpperCase() })
+  .subscribe({ msg ->
+    println(msg)
+  })
+----
+
+
+*RxJava provides a missing api for async computations for jvm languages*
+
+
+What to chose
+-------------
+
+- *There is no silver bullet*
+- *Use most natural approach for your technology/language/domain* +
+  (there are many STM implementations, but in Clojure it's idiomatic and part of the core)
+- *Much explained concepts can be combined!*
+
+Conclusion
+----------
+
+- Coroutines makes code more clear and removes unnecesary callback spaghetti.
+- Rx Extensions / CSP implementations (core.async, asyncio) helps structure the code for concurrency.
+- ThreadPools are not evil, and can be used for many purposes when you need execute some async code.
+- If you really want concurency, choice clojure, elixir or golang ;)
+- core.async is the most complete library: goroutines, csp, reactive extensions.
+
+The End
+-------
+
+*Questions?*
