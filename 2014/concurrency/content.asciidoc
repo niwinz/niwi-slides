@@ -17,17 +17,35 @@ Paradigms: Concurrency vs Paralellism
   problem that may (but not necessarily) be parallelizable.
 
 
+Paradigms: Event-Driven Programming
+-----------------------------------
+
+Event-driven programming is a programming paradigm in which the flow of the program is determined by events.
+
+Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
+
+
+[source,javascript]
+----
+$(".container").on("click", ".item", function(event) {
+    event.preventDefault();
+
+    var target = $(event.currentTarget);
+    target.addClass("foobar");
+});
+----
+
+
 Paradigms: Reactive Programming
 -------------------------------
 
 Is a programming paradigm oriented around data flows and the propagation of change.
 
-Common pattern: *Observable*
+Widely known common pattern: *Observable*
 
-Can use *Event-Loop*, Threading or Both, ...
+Can use *Event-Loop*, Threading or Both, as internal implementation.
 
-Is mostly related to Event-Driven programming but is not same thing.
-
+Related to Event-Driven programming but is not same thing.
 
 Problems:
 
@@ -39,12 +57,34 @@ Solutions:
 - *Functional Reactive Programming*
 
 
-Paradigms: Event-Driven Programming
------------------------------------
+Paradigm: Functional Reactive Programming
+-----------------------------------------
 
-Event-driven programming is a programming paradigm in which the flow of the program is determined by events.
+Apply functional paradigm to Reactive Programmign.
 
-Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
+Try deal with *events as elements in one sequence or a channel*.
+
+You can compose it with well known methods: first(), drop(n), take(n), map(), reduce(), ...
+
+.Example using clojure core.async
+[source, clojure]
+----
+(let [ch (->> (get-events-for-userid 1) (drop 20) (take 10))]
+  (loop []
+    (when-let [event (<!! ch)]
+      (println event)
+      (recur))))
+----
+
+
+.Example using Groovy
+[source,groovy]
+----
+Observable<Event> events = getEventsForUserId(1)
+events.drop(20)
+      .take(10)
+      .subscribe({ event -> println event})
+----
 
 
 Concepts: Async vs Sync
@@ -54,14 +94,17 @@ Concepts: Async vs Sync
 
 Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
 
+*Async* can to be:
+
+- Api Interface (independently of implementation)
+- Api implementation (independently of api interface)
+
 Examples:
 
 - Reactive programming can be used asynchronously (or not)
 - Executuon of any code in a separate thread can be asynchronously (or not)
 
 *Async code implies concurrency but not always parallelism* (javascript event system as example)
-
-NOTE: Owner of api should retain of concrency behavior
 
 
 Concepts: Composability & Functional Programming
@@ -93,7 +136,6 @@ paralelized:
 
 This executes in parallel two threads, each one applyes lower-case and keywordize function for one element of
 shared state (initial vector) and finally join results.
-
 
 Concepts: Callbacks
 -------------------
@@ -572,11 +614,32 @@ def handlerActor = Actors.actor{
 def reply1 = replyingActor.sendAndWait('Message 1')
 ----
 
-Each actor can contain its own isolated state.
+Notes:
 
-You can build actors that runs an other actors.
+- Each actor can contain its own isolated state.
+- You can build actors that runs an other actors.
+- Actors almost always are build over coroutines and threadpools.
 
-Actors almost always are build over coroutines and threadpools.
+.An other example using Elixir
+[source, elixir]
+----
+defmodule Worker
+  def greet do
+    receive do
+      msg -> IO.puts("Received #{msg}")
+      greet
+  end
+end
+
+
+defmodule Main do
+  def main do
+      actor = spawn(Worker, :greet, [])
+      send(self(), "Foo")
+      send(self(), "Bar")
+  end
+end
+----
 
 
 Functional Reactive Programming
@@ -688,6 +751,11 @@ getDataList()
 
 *RxJava provides a missing api for async computations for jvm languages*
 
+Additional resources:
+
+- https://speakerdeck.com/benjchristensen/functional-reactive-programming-in-the-netflix-api-lambdajam-2013
+
+
 Libraries, paradigms, models
 ----------------------------
 
@@ -708,6 +776,7 @@ Bad:
 - Not implements FRP (does not have composable reactive callbacks)
 - Only works in one thread, execute something in other thread should be done explicitly (by default coroutines are only executed in one
   thread and scheduled by event-loop).
+
 
 Groovy Gpars
 ~~~~~~~~~~~~
@@ -736,7 +805,7 @@ Good:
 Bad:
 
 - Requires additional java agent.
-
+- Not very stable.
 
 
 Clojure core.async
@@ -744,15 +813,27 @@ Clojure core.async
 
 Good:
 
-- Full support of FRP (reac
+- Full support of FRP (reactive composable operations over explicit channels)
 - Implements Goroutines (Coroutines)
 - One of the best CSP implementations (same as golang)
 
 Bad:
 
-- No Actor model by default (can be emulated with csp)
+- No Actor model by default (can be emulated with CSP)
 
 
+RxJava
+~~~~~~
+
+Good:
+
+- Very good abstraction for events sequence
+- Very good abstraction for async api
+
+Bad:
+
+- Works as secuence of events but is not sequence.
+- In any case, you should use callbacks.
 
 
 What to chose
