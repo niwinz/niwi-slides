@@ -5,7 +5,7 @@ Andrey Antukh <niwi@niwi.be>
 
 :toc:
 
-image:images/angularjs.jpg[width="1820"]
+image:images/angularjs.jpg[width="960"]
 
 ++++
 <script src="js/jquery-2.0.3.min.js"></script>
@@ -37,7 +37,7 @@ Overview: Scope
 - Is a link between controller and view (template)
 - Represented as logical tree over DOM.
 
-image:images/scope.png[Representacion grafica de scopes en Taiga]
+image:images/scope.png["Representacion grafica de scopes en Taiga", width="940"]
 
 
 Overview: Data Binding
@@ -52,8 +52,8 @@ things you have to worry about.
 image:images/concepts-databinding1.png[]
 
 
-Overview: Data Binding
-----------------------
+Overview: Controllers
+---------------------
 
 Controllers are the behavior behind the DOM elements. 
 
