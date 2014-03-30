@@ -6,15 +6,38 @@ Andrey Antukh <niwi@niwi.be>
 :toc:
 
 
-Paradigms: Concurrency vs Paralellism
--------------------------------------
+Concurrency and Paralellism
+---------------------------
 
 - Concurrency is about dealing with lots of things at once.
 - Parallelism is about doing lots of things at once.
-- Not the same, but related.
 - Concurrency is about structure, parallelism is about execution.
 - Concurrency provides a way to structure a solution to solve a
   problem that may (but not necessarily) be parallelizable.
+- Not the same, but related.
+
+
+Concepts: Async vs Sync
+-----------------------
+
+- *Asynchronous programming* not exists as programming paradigm as is.
+- Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
+- Mainly related to link:http://en.wikipedia.org/wiki/Asynchronous_I/O[Asynchronous I/O]
+
+Patterns:
+
+- link:http://en.wikipedia.org/wiki/Reactor_pattern[Reactor]
+- link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
+
+Also can define/describe:
+
+- Api interface.
+- Api implementation behavior.
+
+Examples:
+
+- Javascript VM's implements reactor pattern: handles events asynchronously but execute all handlers synchronously. (concurrency)
+- Jetty/Netty implements proactor pattern: handles events asynchronously and executes handlers also asynchronously using threads. (concurrency and paralellism)
 
 
 Paradigms: Event-Driven Programming
@@ -23,7 +46,6 @@ Paradigms: Event-Driven Programming
 Event-driven programming is a programming paradigm in which the flow of the program is determined by events.
 
 Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
-
 
 [source,javascript]
 ----
@@ -41,18 +63,18 @@ Paradigms: Reactive Programming
 
 Is a programming paradigm oriented around data flows and the propagation of change.
 
-Widely known common pattern: *Observable*
+- Widely known common pattern: *Observable*
+- Independent of implementation: it can use many concurrency models and many patterns for implement it.
+- Can be blocking or asynchronous.
 
-Can use *Event-Loop*, Threading or Both, as internal implementation.
-
-Related to Event-Driven programming but is not same thing.
+Highly related to Event-Driven paradigm.
 
 Problems:
 
 - Not composable as is.
 - Invites to have callback spaghetti.
 
-Solutions:
+Possible solutions:
 
 - *Functional Reactive Programming*
 
@@ -69,7 +91,8 @@ You can compose it with well known methods: first(), drop(n), take(n), map(), re
 .Example using clojure core.async
 [source, clojure]
 ----
-(let [ch (->> (get-events-for-userid 1) (drop 20) (take 10))]
+(let [ch (->> (get-events-for-userid 1)
+              (drop 20) (take 10))]
   (loop []
     (when-let [event (<!! ch)]
       (println event)
@@ -77,7 +100,7 @@ You can compose it with well known methods: first(), drop(n), take(n), map(), re
 ----
 
 
-.Example using Groovy
+.Example using Groovy with RxJava groovy adapter.
 [source,groovy]
 ----
 Observable<Event> events = getEventsForUserId(1)
@@ -85,26 +108,6 @@ events.drop(20)
       .take(10)
       .subscribe({ event -> println event})
 ----
-
-
-Concepts: Async vs Sync
------------------------
-
-*Asynchronous programming* not exists as programming paradigm.
-
-Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
-
-*Async* can to be:
-
-- Api Interface (independently of implementation)
-- Api implementation (independently of api interface)
-
-Examples:
-
-- Reactive programming can be used asynchronously (or not)
-- Executuon of any code in a separate thread can be asynchronously (or not)
-
-*Async code implies concurrency but not always parallelism* (javascript event system as example)
 
 
 Concepts: Composability & Functional Programming
@@ -125,8 +128,7 @@ Nothing new, functional programming implies:
 (def lower-case (fn [item] (.toLowerCase item)))
 ----
 
-Previously functions are pure and can be composed, executed concurently over shared state concurrently and
-paralelized:
+Previously functions are pure and can be composed, enabling concurrency and paralellism:
 
 [source,clojure]
 ----
@@ -136,6 +138,7 @@ paralelized:
 
 This executes in parallel two threads, each one applyes lower-case and keywordize function for one element of
 shared state (initial vector) and finally join results.
+
 
 Concepts: Callbacks
 -------------------
@@ -162,12 +165,6 @@ Disadvantages:
 
 *Use a combination of coroutines, and composable reactive libraries*.
 
-
-Concepts: Shared/Isolated state
--------------------------------
-
-- *Shared state* almost always related to concurrency.
-- *Isolated State* almos always related to parallelism.
 
 Concepts: Shared state
 ----------------------
@@ -296,7 +293,28 @@ def future = executor.submit(new Callable<Integer>() {
 println "Result ${future.get()}"
 ----
 
-Guava-Libraries exposes much powerful futures: https://code.google.com/p/guava-libraries
+Concurrency primitives: Future/Promise
+--------------------------------------
+
+Futures represent asynchronous computations. They are a way to get
+code to run in another thread, and obtain the result.
+
+Almos all lenguages implements futures.
+
+Can work as:
+
+- Synchronization primitive
+- Composable monadic value.
+
+[source, clojure]
+----
+(let [a (future (+ 1 2)
+      b (future (+ 3 4)
+      c (future (+ @a @b))]
+  @c)
+----
+
+Guava-Libraries exposes much powerful futures for java: https://code.google.com/p/guava-libraries
 
 
 Concurrency primitives: Event-Loop
@@ -306,13 +324,16 @@ Technically is not concurrency primitive but works as is.
 
 *Mainly used for GUI and IO.*
 
-*For IO, combines well with threadpools.*
-
 Common user cases:
 
 - Web server: *Nginx*, *Jetty*
 - Network applications: *Tornado*, python *asyncio*, *Netty*
 - Gui (almost all gui libraries works with event-loops): Qt, GTK, Android UI, ...
+
+Patterns:
+
+- link:http://en.wikipedia.org/wiki/Reactor_pattern[Reactor]
+- link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
 
 
 *You can not use thread blocking operations inside event-loop thread*
