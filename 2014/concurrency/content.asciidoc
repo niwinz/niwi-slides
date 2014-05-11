@@ -36,9 +36,9 @@ Disadvantages:
 
 Possible approaches:
 
-- Use locks, mutexes and semaphores.
-- Use atomic variables for shared state.
-- Use software transactional memmory (stm)
+- Uses locks, mutexes and semaphores.
+- Uses atomic variables for shared state.
+- Uses software transactional memmory (stm)
 
 Problems with classic approach (locks...):
 
@@ -358,11 +358,29 @@ Additional resources:
 Concurrency primitives: Threads
 -------------------------------
 
-This is a low level concurrency primitive. Use the operating system threads capability for execute
+This is a low level concurrency primitive. Uses the operating system threads capability for execute
 code asynchronously.
 
 *Almost all other concurrency primites works over threads.*
 
+.Using clojure core.async
+[source, clojure]
+----
+(require '[clojure.core.async :refer :all])
+
+(let [fc (thread (generate-reports))]
+  (take! fc (fn [result]
+              (println result)))
+----
+
+.Using clojure simple futures
+[source, clojure]
+----
+(let [f (future (generate-reports))]
+  (future (println @f)))
+----
+
+.Using python
 [source, python]
 ----
 def long_live_task(future):
