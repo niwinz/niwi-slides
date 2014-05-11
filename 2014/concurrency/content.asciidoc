@@ -6,7 +6,7 @@ Andrey Antukh <niwi@niwi.be>
 :toc:
 
 
-Concurrency and Paralellism
+Concurrency and Parallelism
 ---------------------------
 
 - Concurrency is about dealing with lots of things at once.
@@ -15,155 +15,6 @@ Concurrency and Paralellism
 - Concurrency provides a way to structure a solution to solve a
   problem that may (but not necessarily) be parallelizable.
 - Not the same, but related.
-
-
-Concepts: Async vs Sync
------------------------
-
-- *Asynchronous programming* not exists as programming paradigm as is.
-- Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
-- Mainly related to link:http://en.wikipedia.org/wiki/Asynchronous_I/O[Asynchronous I/O]
-
-Patterns:
-
-- link:http://en.wikipedia.org/wiki/Reactor_pattern[Reactor]
-- link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
-
-Also can define/describe:
-
-- Api interface.
-- Api implementation behavior.
-
-Examples:
-
-- Javascript VM's implements reactor pattern: handles events asynchronously but execute all handlers synchronously. (concurrency)
-- Jetty/Netty implements proactor pattern: handles events asynchronously and executes handlers also asynchronously using threads. (concurrency and paralellism)
-
-
-Paradigms: Event-Driven Programming
------------------------------------
-
-Event-driven programming is a programming paradigm in which the flow of the program is determined by events.
-
-Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
-
-[source,javascript]
-----
-$(".container").on("click", ".item", function(event) {
-    event.preventDefault();
-
-    var target = $(event.currentTarget);
-    target.addClass("foobar");
-});
-----
-
-
-Paradigms: Reactive Programming
--------------------------------
-
-Is a programming paradigm oriented around data flows and the propagation of change.
-
-- Widely known common pattern: *Observable*
-- Independent of implementation: it can use many concurrency models and many patterns for implement it.
-- Can be blocking or asynchronous.
-
-Highly related to Event-Driven paradigm.
-
-Problems:
-
-- Not composable as is.
-- Invites to have callback spaghetti.
-
-Possible solutions:
-
-- *Functional Reactive Programming*
-
-
-Paradigm: Functional Reactive Programming
------------------------------------------
-
-Apply functional paradigm to Reactive Programmign.
-
-Try deal with *events as elements in one sequence or a channel*.
-
-You can compose it with well known methods: first(), drop(n), take(n), map(), reduce(), ...
-
-.Example using clojure core.async
-[source, clojure]
-----
-(let [ch (->> (get-events-for-userid 1)
-              (drop 20) (take 10))]
-  (loop []
-    (when-let [event (<!! ch)]
-      (println event)
-      (recur))))
-----
-
-
-.Example using Groovy with RxJava groovy adapter.
-[source,groovy]
-----
-Observable<Event> events = getEventsForUserId(1)
-events.drop(20)
-      .take(10)
-      .subscribe({ event -> println event})
-----
-
-
-Concepts: Composability & Functional Programming
-------------------------------------------------
-
-Nothing new, functional programming implies:
-
-- *immutablity*: Thread safe by default.
-- *persistent data strucutes*: removes unnecesary deep copy of objects.
-- *composability*: Small well separated composable components allows easy concurrency and enables parallelism.
-
-.Function definition
-[source, clojure]
-----
-;; Complete useless, because
-;; we can use keyword function directly
-(def keywordize (fn [item] (keyword item)))
-(def lower-case (fn [item] (.toLowerCase item)))
-----
-
-Previously functions are pure and can be composed, enabling concurrency and paralellism:
-
-[source,clojure]
-----
-(pmap (comp keywordize lower-case) ["HELLO", "WORLD"])
-;; -> (:hello :world)
-----
-
-This executes in parallel two threads, each one applyes lower-case and keywordize function for one element of
-shared state (initial vector) and finally join results.
-
-
-Concepts: Callbacks
--------------------
-
-Mainly bound to *Reactive programming*. But also used in event-driven programming languages like javascript.
-
-.WebSockets reactive behavior example:
-[source,js]
-----
-var ws = new WebSocket("ws://host:port/path");
-ws.addEventListener("message", function(event) {
-    console.log(event.data);
-});
-
-ws.addEventListener("error", function(event) {
-    console.log("Error:", event);
-});
-----
-
-Disadvantages:
-
-- Not composable as is.
-- With more complex logic, code is converted to Spaghetti ;)
-
-*Use a combination of coroutines, and composable reactive libraries*.
 
 
 Concepts: Shared state
@@ -240,6 +91,269 @@ Disadvantages:
 - Not works well with refereces, always pass copies of objects
 - Usually consumes much more memory.
 
+Concepts: Callbacks
+-------------------
+
+Mainly bound to *Reactive programming*. But also used in event-driven programming languages like javascript.
+
+.WebSockets reactive behavior example:
+[source,js]
+----
+var ws = new WebSocket("ws://host:port/path");
+ws.addEventListener("message", function(event) {
+    console.log(event.data);
+});
+
+ws.addEventListener("error", function(event) {
+    console.log("Error:", event);
+});
+----
+
+Disadvantages:
+
+- Not composable as is.
+- With more complex logic, code is converted to Spaghetti ;)
+
+
+Concepts: Async vs Sync
+-----------------------
+
+- *Asynchronous programming* not exists as programming paradigm as is.
+- Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
+- Mainly related to link:http://en.wikipedia.org/wiki/Asynchronous_I/O[Asynchronous I/O]
+
+Patterns:
+
+- link:http://en.wikipedia.org/wiki/Reactor_pattern[Reactor]
+- link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
+
+Also can define/describe:
+
+- Api interface.
+- Api implementation behavior.
+
+Examples:
+
+- Javascript VM's implements reactor pattern: handles events asynchronously but execute all handlers synchronously. (concurrency)
+- Jetty/Netty implements proactor pattern: handles events asynchronously and executes handlers also asynchronously using threads. (concurrency and parallelism)
+
+
+Concepts: Composability & Functional Programming
+------------------------------------------------
+
+Nothing new, functional programming implies:
+
+- *immutablity*: Thread safe by default.
+- *persistent data strucutes*: removes unnecesary deep copy of objects.
+- *composability*: Small well separated composable components allows easy concurrency and enables parallelism.
+
+.Function definition
+[source, clojure]
+----
+;; Complete useless, because
+;; we can use keyword function directly
+(def keywordize (fn [item] (keyword item)))
+(def lower-case (fn [item] (.toLowerCase item)))
+----
+
+Previously functions are pure and can be composed, enabling concurrency and parallelism:
+
+[source,clojure]
+----
+(pmap (comp keywordize lower-case) ["HELLO", "WORLD"])
+;; -> (:hello :world)
+----
+
+This executes in parallel two threads, each one applyes lower-case and keywordize function for one element of
+shared state (initial vector) and finally join results.
+
+
+Paradigms: Event-Driven Programming
+-----------------------------------
+
+Event-driven programming is a programming paradigm in which the flow of the program is determined by events.
+
+Used mainly for implement graphical user interfaces and uses *Event-Loop* for it.
+
+[source,javascript]
+----
+$(".container").on("click", ".item", function(event) {
+    event.preventDefault();
+
+    var target = $(event.currentTarget);
+    target.addClass("foobar");
+});
+----
+
+
+Paradigms: Reactive Programming
+-------------------------------
+
+Is a programming paradigm oriented around data flows and the propagation of change.
+
+- Widely known common pattern: *Observable*
+- Independent of implementation: it can use many concurrency models and many patterns for implement it.
+- Can be blocking or asynchronous.
+
+Highly related to Event-Driven paradigm.
+
+Problems:
+
+- Not composable as is.
+- Invites to have callback spaghetti.
+
+Possible solutions:
+
+- *Functional Reactive Programming*
+
+
+Paradigms: Functional Reactive Programming (1)
+---------------------------------------------
+
+Apply functional paradigm to Reactive Programmign.
+
+Try deal with *events as elements in one sequence or a channel*.
+
+You can compose it with well known methods: first(), drop(n), take(n), map(), reduce(), ...
+
+.Example using clojure core.async
+[source, clojure]
+----
+(let [ch (->> (get-events-for-userid 1)
+              (drop 20) (take 10))]
+  (loop []
+    (when-let [event (<!! ch)]
+      (println event)
+      (recur))))
+----
+
+
+.Example using Groovy with RxJava groovy adapter.
+[source,groovy]
+----
+Observable<Event> events = getEventsForUserId(1)
+events.drop(20)
+      .take(10)
+      .subscribe({ event -> println event})
+----
+
+
+Paradigms: Functional Reactive Programming (2)
+---------------------------------------------
+
+*Owners of API should retain control of concurrency behavior*.
+
+[source,python]
+----
+class Repository(object):
+    def get_data() -> Future:
+        pass
+----
+
+Observations:
+
+- Exposes always async api.
+- Implementation can be blocking or non-blocking
+- Implementation can use eventloop, simple threadpool or combination of both.
+
+
+*RxJava*: a library for composing asynchronous programs using observable sequences.
+
+*Similar target that clojure core.async but with "implicit channels"*
+
+.Asynchronous observer
+[source,groovy]
+----
+getData().subscribe(
+    { data ->
+        println("Received: ${data}")
+    }, { exc ->
+        exc.printStackTrace()
+    }
+)
+----
+
+Paradigms: Functional Reactive Programming (3)
+---------------------------------------------
+
+.Blocking observable
+[source,groovy]
+----
+Observable<String> getData() {
+  return Observable.create({ observer ->
+    try {
+      def data = getDataFromNetwork()
+      observer.onNext(data)
+      observer.onComplete()
+    } catch (Exception e) {
+      observer.onError(e);
+    }
+  })
+}
+----
+
+.Nonblocking observable
+[source,groovy]
+----
+Observable<String> getData() {
+  return Observable.create({ observer ->
+    executor.submit(new Runnable() {
+      def void run() {
+        try {
+          def data = getDataFromNetwork();
+          observer.onNext(data)
+          observer.onComplete()
+        } catch (Exception e) {
+          observer.onError(e);
+        }
+      }
+    })
+  })
+}
+----
+
+.Nonblocking observable with multiple values
+[source,groovy]
+----
+Observable<String> getDataList() {
+  return Observable.create({ observer ->
+    executor.submit(new Runnable() {
+      def void run() {
+        try {
+          def data = getDataArrayFromNetwork();
+          data.each({
+            observer.onNext(it)
+          })
+          observer.onComplete()
+        } catch (Exception e) {
+          observer.onError(e);
+        }
+      }
+    })
+  })
+}
+----
+
+*Same interface, works for single values and collections*
+
+.Composable reactive sequences (a la core.async channels)
+[source,groovy]
+----
+getDataList()
+  .drop(10)
+  .take(5)
+  .map({ x -> x.toUpperCase() })
+  .subscribe({ msg ->
+    println(msg)
+  })
+----
+
+*RxJava provides a missing api for async computations for jvm languages*
+
+Additional resources:
+
+- https://speakerdeck.com/benjchristensen/functional-reactive-programming-in-the-netflix-api-lambdajam-2013
+
 
 Concurrency primitives: Threads
 -------------------------------
@@ -299,7 +413,7 @@ Concurrency primitives: Future/Promise
 Futures represent asynchronous computations. They are a way to get
 code to run in another thread, and obtain the result.
 
-Almos all lenguages implements futures.
+Almos all languages implements futures.
 
 Can work as:
 
@@ -319,8 +433,6 @@ Guava-Libraries exposes much powerful futures for java: https://code.google.com/
 
 Concurrency primitives: Event-Loop
 ----------------------------------
-
-Technically is not concurrency primitive but works as is.
 
 *Mainly used for GUI and IO.*
 
@@ -532,50 +644,6 @@ Best csp implementations: *Golang* and *Clojure*
 
 *CSP can be emulated very well with python asyncio and groovy gparse (but with very non semantic api)*
 
-.Example CSP using python asyncio.
-[source, python]
-----
-from asyncio import coroutine, Queue
-import asyncio
-
-@coroutine
-def transformer(name, qin, qout):
-    while True:
-        yield from asyncio.sleep(0.5)
-        value = yield from qin.get()
-        yield from qout.put("{} !!! {} !!!".format(name, value))
-
-@coroutine
-def generator():
-    queue = Queue(1)
-
-    @coroutine
-    def _async_generator(q):
-        for x in range(100):
-            yield from q.put(str(x))
-
-    asyncio.async(_async_generator(queue))
-    return queue
-
-@asyncio.coroutine
-def main():
-    qin = yield from generator()
-    qout = Queue(1)
-
-    # Now you can run multiple parallel transformers over
-    # one generator and with one output.
-    asyncio.async(transformer("foo", qin, qout))
-    asyncio.async(transformer("bar", qin, qout))
-
-    while True:
-        value = yield from qout.get()
-        print("procesed:", value)
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
-----
-
-.Same example but using clojure core.async
 [source, clojure]
 ----
 (require '[clojure.core.async :refer [go <!! <! >!
@@ -662,119 +730,6 @@ defmodule Main do
 end
 ----
 
-
-Functional Reactive Programming
--------------------------------
-
-*Owners of API should retain control of concurrency behavior*.
-
-[source,python]
-----
-class Repository(object):
-    def get_data() -> Future:
-        pass
-----
-
-Observations:
-
-- Exposes always async api.
-- Implementation can be blocking or non-blocking
-- Implementation can use eventloop, simple threadpool or combination of both.
-
-
-*RxJava*: a library for composing asynchronous programs using observable sequences.
-
-*Similar target that clojure core.async but with "implicit channels"*
-
-.Asynchronous observer
-[source,groovy]
-----
-getData().subscribe(
-    { data ->
-        println("Received: ${data}")
-    }, { exc ->
-        exc.printStackTrace()
-    }
-)
-----
-
-.Synchronous observable
-[source,groovy]
-----
-Observable<String> getData() {
-  return Observable.create({ observer ->
-    try {
-      def data = getDataFromNetwork()
-      observer.onNext(data)
-      observer.onComplete()
-    } catch (Exception e) {
-      observer.onError(e);
-    }
-  })
-}
-----
-
-.Asynchronous observable
-[source,groovy]
-----
-Observable<String> getData() {
-  return Observable.create({ observer ->
-    executor.submit(new Runnable() {
-      def void run() {
-        try {
-          def data = getDataFromNetwork();
-          observer.onNext(data)
-          observer.onComplete()
-        } catch (Exception e) {
-          observer.onError(e);
-        }
-      }
-    })
-  })
-}
-----
-
-.Asynchronous observable with multiple values
-[source,groovy]
-----
-Observable<String> getDataList() {
-  return Observable.create({ observer ->
-    executor.submit(new Runnable() {
-      def void run() {
-        try {
-          def data = getDataArrayFromNetwork();
-          data.each({
-            observer.onNext(it)
-          })
-          observer.onComplete()
-        } catch (Exception e) {
-          observer.onError(e);
-        }
-      }
-    })
-  })
-}
-----
-
-*Same interface, works for single values and collections*
-
-.Composable reactive sequences (a la core.async channels)
-[source,groovy]
-----
-getDataList()
-  .drop(10)
-  .take(5)
-  .map({ x -> x.toUpperCase() })
-  .subscribe({ msg ->
-    println(msg)
-  })
-----
-
-*RxJava provides a missing api for async computations for jvm languages*
-
-Additional resources:
-
-- https://speakerdeck.com/benjchristensen/functional-reactive-programming-in-the-netflix-api-lambdajam-2013
 
 
 Libraries, paradigms, models
