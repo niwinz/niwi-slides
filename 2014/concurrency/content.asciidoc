@@ -5,7 +5,6 @@ Andrey Antukh <niwi@niwi.be>
 
 :toc:
 
-
 Concurrency and Parallelism
 ---------------------------
 
@@ -50,7 +49,7 @@ Problems with classic approach (locks...):
 - Taking locks in wrong order
 - Error recovery is hard
 
-Recommentation:
+Recommendation:
 
 - Use STM or atomic variables if you need deal with shared mutable state.
 - Use high level abstractions for lock less coordination like channels (CSP and Actors)
@@ -78,7 +77,7 @@ Concepts: Isolated State
 
 Advantages:
 
-- Easier to model; many theoretical models for this (CSP, Actor).
+- Easier to model.
 - Communication is synchronization
 - No need to worry about mutual exclusion; as each process has its own state
   which no other process may point to.
@@ -90,6 +89,7 @@ Disadvantages:
 - GlobalConsensus much more difficult to achieve.
 - Not works well with refereces, always pass copies of objects
 - Usually consumes much more memory.
+
 
 Concepts: Callbacks
 -------------------
@@ -273,6 +273,7 @@ getData().subscribe(
 )
 ----
 
+
 Paradigms: Functional Reactive Programming (3)
 ---------------------------------------------
 
@@ -350,9 +351,35 @@ getDataList()
 
 *RxJava provides a missing api for async computations for jvm languages*
 
+*If you are using clojure, yo do not need any extensions, core.async has every thing that you need*.
+
 Additional resources:
 
 - https://speakerdeck.com/benjchristensen/functional-reactive-programming-in-the-netflix-api-lambdajam-2013
+
+
+Concurrency primitives: Future/Promise
+--------------------------------------
+
+Futures represent asynchronous computations. They are a way to get
+code to run in another thread, and obtain the result.
+
+Almos all languages implements futures.
+
+Can work as:
+
+- Synchronization primitive
+- Composable monadic value.
+
+[source, clojure]
+----
+(let [a (future (+ 1 2)
+      b (future (+ 3 4)
+      c (future (+ @a @b))]
+  @c)
+----
+
+Guava-Libraries exposes much powerful futures for java: https://code.google.com/p/guava-libraries
 
 
 Concurrency primitives: Threads
@@ -373,12 +400,14 @@ code asynchronously.
               (println result)))
 ----
 
+
 .Using clojure simple futures
 [source, clojure]
 ----
 (let [f (future (generate-reports))]
   (future (println @f)))
 ----
+
 
 .Using python
 [source, python]
@@ -407,6 +436,7 @@ Advantages:
 - Reuses created threads.
 - Can stop unused threads.
 
+
 .Example using executor service with groovy
 [source,groovy]
 ----
@@ -425,40 +455,16 @@ def future = executor.submit(new Callable<Integer>() {
 println "Result ${future.get()}"
 ----
 
-Concurrency primitives: Future/Promise
---------------------------------------
-
-Futures represent asynchronous computations. They are a way to get
-code to run in another thread, and obtain the result.
-
-Almos all languages implements futures.
-
-Can work as:
-
-- Synchronization primitive
-- Composable monadic value.
-
-[source, clojure]
-----
-(let [a (future (+ 1 2)
-      b (future (+ 3 4)
-      c (future (+ @a @b))]
-  @c)
-----
-
-Guava-Libraries exposes much powerful futures for java: https://code.google.com/p/guava-libraries
-
 
 Concurrency primitives: Event-Loop
 ----------------------------------
 
-*Mainly used for GUI and IO.*
-
 Common user cases:
 
 - Web server: *Nginx*, *Jetty*
-- Network applications: *Tornado*, python *asyncio*, *Netty*
+- Network/IO applications: *Tornado*, python *asyncio*, *Netty*
 - Gui (almost all gui libraries works with event-loops): Qt, GTK, Android UI, ...
+- Scheduler for lightweigh threads / coroutines (python asyncio)
 
 Patterns:
 
@@ -466,7 +472,7 @@ Patterns:
 - link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
 
 
-*You can not use thread blocking operations inside event-loop thread*
+*You can't use thread blocking operations inside event-loop thread*
 
 [source, python]
 ----
@@ -565,7 +571,7 @@ import asyncio
 
 @asyncio.coroutine
 def sleeping_counter(name):
-    for x in range(10):
+    for x in range(2):
         yield from asyncio.sleep(1)
         print("{}:{}".format(name, x))
 
@@ -579,6 +585,17 @@ main_task = asyncio.wait(tasks)
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main_task)
 ----
+
+.Result of executing previosly example code
+[source, text]
+----
+niwi@niwi.be ~/# python examples/coroutines-asyncio.py
+bar:0
+foo:0
+bar:1
+foo:1
+----
+
 
 .Same example but using clojure core.async
 [source,clojure]
@@ -657,6 +674,7 @@ Advantages:
 - Teorically use less memory than Actor Model.
 - Very common patern: unix pipes (but with steroids)
 - Abstract: Actor model can be build on to of CSP
+- Can be extended with reactive extensions (core.async)
 
 Best csp implementations: *Golang* and *Clojure*
 
@@ -809,7 +827,7 @@ Good:
 
 - Full support of FRP (reactive composable operations over explicit channels)
 - Implements Goroutines (Coroutines)
-- One of the best CSP implementations (same as golang)
+- One of the best CSP implementations.
 
 Bad:
 
@@ -838,14 +856,17 @@ What to chose
   (there are many STM implementations, but in Clojure it's idiomatic and part of the core)
 - *Much explained concepts can be combined!*
 
+
 Conclusion
 ----------
 
 - Coroutines makes code more clear and removes unnecesary callback spaghetti.
+- Not all libraries/languages has support for real coroutines.
 - Rx Extensions / CSP implementations (core.async, asyncio) helps structure the code for concurrency.
 - ThreadPools are not evil, and can be used for many purposes when you need execute some async code.
 - If you really want concurency, choice clojure, elixir or golang ;)
-- core.async is the most complete library: goroutines, csp, reactive extensions.
+- core.async is the most complete library: goroutines, csp with reactive extensions.
+
 
 The End
 -------
