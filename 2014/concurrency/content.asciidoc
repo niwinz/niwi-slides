@@ -39,9 +39,13 @@ Possible approaches:
 - Uses atomic variables for shared state.
 - Uses software transactional memmory (stm)
 
-Problems with classic approach (locks...):
 
-- Locks do not composable
+Concepts: Shared state & Locks
+------------------------------
+
+Problems with classic approach:
+
+- Locks do not compose
 - Locks breaks encapsulation (you need to know a lot!)
 - Taking too few locks
 - Taking too many locks
@@ -53,23 +57,6 @@ Recommendation:
 
 - Use STM or atomic variables if you need deal with shared mutable state.
 - Use high level abstractions for lock less coordination like channels (CSP and Actors)
-
-
-.Example of hypothetical bank transaction using clojure STM.
-[source, clojure]
-----
-(defn make-transaction
-  [user1, user2, amount]
-  (let [account1 (get-account-for-user user1)
-        account2 (get-account-for-user user2)]
-
-    ;; This code block can be executed many times
-    ;; because it works like database serialized
-    ;; isolated transactions
-    (dosync
-      (retrieve-money account1 amount)
-      (put-money account2 amount))))
-----
 
 
 Concepts: Isolated State
@@ -91,30 +78,6 @@ Disadvantages:
 - Usually consumes much more memory.
 
 
-Concepts: Callbacks
--------------------
-
-Mainly bound to *Reactive programming*. But also used in event-driven programming languages like javascript.
-
-.WebSockets reactive behavior example:
-[source,js]
-----
-var ws = new WebSocket("ws://host:port/path");
-ws.addEventListener("message", function(event) {
-    console.log(event.data);
-});
-
-ws.addEventListener("error", function(event) {
-    console.log("Error:", event);
-});
-----
-
-Disadvantages:
-
-- Not composable as is.
-- With more complex logic, code is converted to Spaghetti ;)
-
-
 Concepts: Async vs Sync
 -----------------------
 
@@ -122,20 +85,10 @@ Concepts: Async vs Sync
 - Is a simple concept: delay a execution after something occurs (network resource now available, delayed time is reached, etc...)
 - Mainly related to link:http://en.wikipedia.org/wiki/Asynchronous_I/O[Asynchronous I/O]
 
-Patterns:
-
-- link:http://en.wikipedia.org/wiki/Reactor_pattern[Reactor]
-- link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
-
 Also can define/describe:
 
 - Api interface.
 - Api implementation behavior.
-
-Examples:
-
-- Javascript VM's implements reactor pattern: handles events asynchronously but execute all handlers synchronously. (concurrency)
-- Jetty/Netty implements proactor pattern: handles events asynchronously and executes handlers also asynchronously using threads. (concurrency and parallelism)
 
 
 Concepts: Composability & Functional Programming
@@ -208,7 +161,7 @@ Possible solutions:
 
 
 Paradigms: Functional Reactive Programming (1)
----------------------------------------------
+----------------------------------------------
 
 Apply functional paradigm to Reactive Programmign.
 
@@ -239,7 +192,7 @@ events.drop(20)
 
 
 Paradigms: Functional Reactive Programming (2)
----------------------------------------------
+----------------------------------------------
 
 *Owners of API should retain control of concurrency behavior*.
 
@@ -275,7 +228,7 @@ getData().subscribe(
 
 
 Paradigms: Functional Reactive Programming (3)
----------------------------------------------
+----------------------------------------------
 
 .Blocking observable
 [source,groovy]
@@ -466,11 +419,16 @@ Common user cases:
 - Gui (almost all gui libraries works with event-loops): Qt, GTK, Android UI, ...
 - Scheduler for lightweigh threads / coroutines (python asyncio)
 
+
 Patterns:
 
 - link:http://en.wikipedia.org/wiki/Reactor_pattern[Reactor]
 - link:http://en.wikipedia.org/wiki/Proactor_pattern[Proactor]
 
+Examples:
+
+- Javascript VM's implements reactor pattern: handles events asynchronously but execute all handlers synchronously. (concurrency)
+- Jetty/Netty implements proactor pattern: handles events asynchronously and executes handlers also asynchronously using threads. (concurrency and parallelism)
 
 *You can't use thread blocking operations inside event-loop thread*
 
@@ -848,18 +806,13 @@ Bad:
 - In any case, you should use callbacks.
 
 
-What to chose
--------------
+Conclusion
+----------
 
 - *There is no silver bullet*
 - *Use most natural approach for your technology/language/domain* +
   (there are many STM implementations, but in Clojure it's idiomatic and part of the core)
 - *Much explained concepts can be combined!*
-
-
-Conclusion
-----------
-
 - Coroutines makes code more clear and removes unnecesary callback spaghetti.
 - Not all libraries/languages has support for real coroutines.
 - Rx Extensions / CSP implementations (core.async, asyncio) helps structure the code for concurrency.
