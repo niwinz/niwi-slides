@@ -1,11 +1,14 @@
 /* slidy.js
 
-   Copyright (c) 2005-2010 W3C (MIT, ERCIM, Keio), All Rights Reserved.
+   Copyright (c) 2005-2013 W3C (MIT, ERCIM, Keio), All Rights Reserved.
    W3C liability, trademark, document use and software licensing
    rules apply, see:
 
    http://www.w3.org/Consortium/Legal/copyright-documents
    http://www.w3.org/Consortium/Legal/copyright-software
+
+   Defines single name "w3c_slidy" in global namespace
+   Adds event handlers without trampling on any others
 */
 
 // the slidy object implementation
@@ -16,12 +19,20 @@ var w3c_slidy = {
   opera: ((navigator.userAgent).indexOf("Opera") >= 0 ? true : false),
   ipad: ((navigator.userAgent).indexOf("iPad") >= 0 ? true : false),
   iphone: ((navigator.userAgent).indexOf("iPhone") >= 0 ? true : false),
+  android: ((navigator.userAgent).indexOf("Android") >= 0 ? true : false),
   ie: (typeof document.all != "undefined" && !this.opera),
   ie6: (!this.ns_pos && navigator.userAgent.indexOf("MSIE 6") != -1),
   ie7: (!this.ns_pos && navigator.userAgent.indexOf("MSIE 7") != -1),
   ie8: (!this.ns_pos && navigator.userAgent.indexOf("MSIE 8") != -1),
   ie9: (!this.ns_pos && navigator.userAgent.indexOf("MSIE 9") != -1),
-  keyboardless: (this.ipad || this.iphone),
+
+  // data for swipe and double tap detection on touch screens
+  last_tap: 0,
+  prev_tap: 0,
+  start_x: 0,
+  start_y: 0,
+  delta_x: 0,
+  delta_y: 0,
 
   // are we running as XHTML? (doesn't work on Opera)
   is_xhtml: /xml/.test(document.contentType),
@@ -92,7 +103,7 @@ var w3c_slidy = {
   init: function () {
     //alert("slidy starting test 10");
     document.body.style.visibility = "visible";
-    w3c_slidy_i18n.init();
+    this.init_localization();
     this.add_toolbar();
     this.wrap_implicit_slides();
     this.collect_slides();
@@ -107,6 +118,13 @@ var w3c_slidy = {
     this.hide_image_toolbar();  // suppress IE image toolbar popup
     this.init_outliner();  // activate fold/unfold support
     this.title = document.title;
+    this.keyboardless = (this.ipad||this.iphone||this.android);
+
+    if (this.keyboardless)
+    {
+      w3c_slidy.remove_class(w3c_slidy.toolbar, "hidden")
+      this.want_toolbar = 0;
+    }
 
     // work around for opera bug
     this.is_xhtml = (document.body.tagName == "BODY" ? false : true);
@@ -142,7 +160,10 @@ var w3c_slidy = {
     // iPhone and iPad, so exclude these from click handler
 
     if (!this.keyboardless)
+    {
       this.add_listener(document.body, "click", this.mouse_button_click);
+      this.add_listener(document.body, "mousedown", this.mouse_button_down);
+    }
 
     this.add_listener(document, "keydown", this.key_down);
     this.add_listener(document, "keypress", this.key_press);
@@ -150,8 +171,16 @@ var w3c_slidy = {
     this.add_listener(window, "scroll", this.scrolled);
     this.add_listener(window, "unload", this.unloaded);
 
-    if (!document.body.onclick)
-      document.body.onclick = function () { };
+    this.add_listener(document, "gesturechange", function ()
+    {
+      return false;
+    });
+
+    this.attach_touch_handers(this.slides);
+
+    // this seems to be a debugging hack
+    //if (!document.body.onclick)
+    //  document.body.onclick = function () { };
 
     this.single_slide_view();
 
@@ -177,7 +206,7 @@ var w3c_slidy = {
 
     var heading = this.create_element("div");
     this.add_class(heading, "toc-heading");
-    heading.innerHTML = "Table of Contents".localize();
+    heading.innerHTML = this.localize("Table of Contents");
 
     toc.appendChild(heading);
     var previous = null;
@@ -198,7 +227,7 @@ var w3c_slidy = {
       var name = document.createTextNode(this.slide_name(i));
       a.appendChild(name);
       a.onclick = w3c_slidy.toc_click;
-      a.onkeydown = w3c_slidy.toc_keydown;
+      a.onkeydown = w3c_slidy.toc_key_down;
       a.previous = previous;
 
       if (previous)
@@ -229,7 +258,7 @@ var w3c_slidy = {
       e||(e=window.event);
 
       if (w3c_slidy.selected_text_len <= 0)
-         w3c_slidy.hide_table_of_contents();
+         w3c_slidy.hide_table_of_contents(true);
 
       w3c_slidy.stop_propagation(e);
     
@@ -259,16 +288,17 @@ var w3c_slidy = {
       setTimeout(w3c_slidy.ie_hack, 100);
   },
 
-  hide_table_of_contents: function () {
+  hide_table_of_contents: function (focus) {
     w3c_slidy.add_class(w3c_slidy.toc, "hidden");
 
-    if (!w3c_slidy.opera)
+    if (focus && !w3c_slidy.opera &&
+        !w3c_slidy.has_class(w3c_slidy.toc, "hidden"))
       w3c_slidy.help_anchor.focus();
   },
 
   toggle_table_of_contents: function () {
     if (w3c_slidy.is_shown_toc())
-      w3c_slidy.hide_table_of_contents();
+      w3c_slidy.hide_table_of_contents(true);
     else
       w3c_slidy.show_table_of_contents();
   },
@@ -309,14 +339,14 @@ var w3c_slidy = {
       }
     }
 
-    w3c_slidy.hide_table_of_contents(e);
+    w3c_slidy.hide_table_of_contents(true);
     if (w3c_slidy.ie7) w3c_slidy.ie_hack();
     w3c_slidy.stop_propagation(e);
     return w3c_slidy.cancel(e);
   },
 
   // called onkeydown for toc entry
-  toc_keydown: function (event) {
+  toc_key_down: function (event) {
     var key;
 
     if (!event)
@@ -369,7 +399,7 @@ var w3c_slidy = {
         }
       }
 
-      w3c_slidy.hide_table_of_contents();
+      w3c_slidy.hide_table_of_contents(true);
 
       if (self.ie7)
        w3c_slidy.ie_hack();
@@ -392,6 +422,76 @@ var w3c_slidy = {
     return true;
   },
 
+  touchstart: function (e)
+  {
+    // a double touch often starts with a
+    // single touch due to fingers touching
+    // down at slightly different times
+    // thus avoid calling preventDefault here
+    this.prev_tap = this.last_tap;
+    this.last_tap = (new Date).getTime();
+
+    var tap_delay = this.last_tap - this.prev_tap;
+
+    if (tap_delay <= 200)
+    {
+      // double tap
+    }
+
+    var touch = e.touches[0];
+
+    this.pageX = touch.pageX;
+    this.pageY = touch.pageY;
+    this.screenX = touch.screenX;
+    this.screenY = touch.screenY;
+    this.clientX = touch.clientX;
+    this.clientY = touch.clientY;
+
+    this.delta_x = this.delta_y = 0;
+  },
+
+  touchmove: function (e)
+  {
+    // override native gestures for single touch
+    if (e.touches.length > 1)
+      return;
+
+    e.preventDefault();
+    var touch = e.touches[0];
+    this.delta_x = touch.pageX - this.pageX;
+    this.delta_y = touch.pageY - this.pageY;
+  },
+
+  touchend: function (e)
+  {
+    // default behavior for multi-touch
+    if (e.touches.length > 1)
+      return;
+
+    var delay = (new Date).getTime() - this.last_tap;
+    var dx = this.delta_x;
+    var dy = this.delta_y;
+    var abs_dx = Math.abs(dx);
+    var abs_dy = Math.abs(dy);
+
+    if (delay < 500 && (abs_dx > 100 || abs_dy > 100))
+    {
+      if (abs_dx > 0.5 * abs_dy)
+      {
+        e.preventDefault();
+
+        if (dx < 0)
+          w3c_slidy.next_slide(true);
+        else
+          w3c_slidy.previous_slide(true);
+      }
+      else if (abs_dy > 2 * abs_dx)
+      {
+        e.preventDefault();
+        w3c_slidy.toggle_table_of_contents();
+      }
+    }
+  },
 
   // ### OBSOLETE ###
   before_print: function () {
@@ -745,10 +845,10 @@ var w3c_slidy = {
     p1.setAttribute("class", "help");
 
     if (this.keyboardless)
-      p1.innerHTML = "Tap footer to move to next slide";
+      p1.innerHTML = "swipe left to move to next slide";
     else
-      p1.innerHTML = "Space or Right Arrow to move to next " +
-                     "slide, click help below for more details";
+      p1.innerHTML = "Space, Right Arrow or swipe left to move to " +
+                     "next slide, click help below for more details";
 
     this.add_listener(prompt, "click", function (e) {
       document.body.removeChild(prompt);
@@ -781,7 +881,7 @@ var w3c_slidy = {
        right.setAttribute("style", "float: right; text-align: right");
 
        counter = this.create_element("span")
-       counter.innerHTML = "slide".localize() + " n/m";
+       counter.innerHTML = this.localize("slide") + " n/m";
        right.appendChild(counter);
        this.toolbar.appendChild(right);
 
@@ -795,8 +895,8 @@ var w3c_slidy = {
 
        var help = this.create_element("a");
        help.setAttribute("href", this.help_page);
-       help.setAttribute("title", this.help_text.localize());
-       help.innerHTML = "help?".localize();
+       help.setAttribute("title", this.localize(this.help_text));
+       help.innerHTML = this.localize("help?");
        left.appendChild(help);
        this.help_anchor = help;  // save for focus hack
 
@@ -805,8 +905,8 @@ var w3c_slidy = {
 
        var contents = this.create_element("a");
        contents.setAttribute("href", "javascript:w3c_slidy.toggle_table_of_contents()");
-       contents.setAttribute("title", "table of contents".localize());
-       contents.innerHTML = "contents?".localize();
+       contents.setAttribute("title", this.localize("table of contents"));
+       contents.innerHTML = this.localize("contents?");
        left.appendChild(contents);
 
        var gap2 = document.createTextNode(" ");
@@ -854,8 +954,8 @@ var w3c_slidy = {
 
        var help = this.create_element("a");
        help.setAttribute("href", this.help_page);
-       help.setAttribute("title", this.help_text.localize());
-       help.innerHTML = "help?".localize();
+       help.setAttribute("title", this.localize(this.help_text));
+       help.innerHTML = this.localize("help?");
        this.toolbar.appendChild(help);
        this.help_anchor = help;  // save for focus hack
 
@@ -864,8 +964,8 @@ var w3c_slidy = {
 
        var contents = this.create_element("a");
        contents.setAttribute("href", "javascript:toggleTableOfContents()");
-       contents.setAttribute("title", "table of contents".localize());
-       contents.innerHTML = "contents?".localize();
+       contents.setAttribute("title", this.localize("table of contents".localize));
+       contents.innerHTML = this.localize("contents?");
        this.toolbar.appendChild(contents);
 
        var gap2 = document.createTextNode(" ");
@@ -893,7 +993,7 @@ var w3c_slidy = {
        counter.style.color = "red";
        counter.style.background = "rgb(240,240,240)";
 
-       counter.innerHTML = "slide".localize() + " n/m";
+       counter.innerHTML = this.localize("slide") + " n/m";
        this.toolbar.appendChild(counter);
      }
 
@@ -951,18 +1051,39 @@ var w3c_slidy = {
 
       while (node)
       {
-        if (node.nodeType == 1 &&    // an element
-             (node.nodeName == "H1" ||
-              node.nodeName == "h1" ||
-              node.nodeName == "DIV" ||
-              node.nodeName == "div"))
-          break;
+        if (node.nodeType == 1) // an element
+        {
+           if (node.nodeName == "H1" || node.nodeName == "h1")
+             break;
+
+           if (node.nodeName == "DIV" || node.nodeName == "div")
+           {
+             if (this.has_class(node, "slide"))
+               break;
+
+             if (this.has_class(node, "handout"))
+               break;
+           }
+        }
 
         next = node.nextSibling;
         node = document.body.removeChild(node);
         div.appendChild(node);
         node = next;
       } 
+    }
+  },
+
+  attach_touch_handers: function(slides)
+  {
+    var i, slide;
+
+    for (i = 0; i < slides.length; ++i)
+    {
+      slide = slides[i];
+      this.add_listener(slide, "touchstart", this.touchstart);
+      this.add_listener(slide, "touchmove", this.touchmove);
+      this.add_listener(slide, "touchend", this.touchend);
     }
   },
 
@@ -1066,8 +1187,11 @@ var w3c_slidy = {
           self.set_location();
         }
       }
-      else if (this.target == null)
-        location.href = this.href;
+      else
+        w3c_slidy.stop_propagation(event);
+
+//      else if (this.target == null)
+//        location.href = this.href;
 
       this.blur();
       self.disable_slide_click = true;
@@ -1088,7 +1212,7 @@ var w3c_slidy = {
   // either directly or indirectly for use of w3c_slidy vs this
   show_slide_number: function () {
     var timer = w3c_slidy.get_timer();
-    w3c_slidy.slide_number_element.innerHTML = timer + "slide".localize() + " " +
+    w3c_slidy.slide_number_element.innerHTML = timer + w3c_slidy.localize("slide") + " " +
            (w3c_slidy.slide_number + 1) + "/" + w3c_slidy.slides.length;
   },
 
@@ -1136,6 +1260,7 @@ var w3c_slidy = {
   // the iframe with script that set's parent's location.hash
   // but that won't work for standalone use unless we can
   // create the page dynamically via a javascript: URL
+  // ### use history.pushState if available
   set_location: function () {
      var uri = w3c_slidy.page_address(location.href);
      var hash = "#(" + (w3c_slidy.slide_number+1) + ")";
@@ -1143,7 +1268,15 @@ var w3c_slidy = {
      if (w3c_slidy.slide_number >= 0)
        uri = uri + hash;
 
-     if (w3c_slidy.ie && !w3c_slidy.ie8)
+     if (typeof(history.pushState) != "undefined")
+     {
+       document.title = w3c_slidy.title + " (" + (w3c_slidy.slide_number+1) + ")";
+       history.pushState(0, document.title, hash);
+       w3c_slidy.show_slide_number();
+       return;
+     }
+
+     if (w3c_slidy.ie && (w3c_slidy.ie6 || w3c_slidy.ie7))
        w3c_slidy.push_hash(hash);
 
      if (uri != location.href) // && !khtml
@@ -1187,12 +1320,10 @@ var w3c_slidy = {
 
     var doc = document.getElementById("historyFrame").contentWindow.document;
     doc.open("javascript:'<html></html>'");
-    // PWL modified this string literal to break the close script tag
-    // which otherwise gets parsed when incorporated
     doc.write("<html><head><script type=\"text/javascript\">window.parent.w3c_slidy.on_frame_loaded('"+
-      (hash) + "');</" + "script></head><body>hello mum</body></html>");
-    doc.close();
-    },
+      (hash) + "');</script></head><body>hello mum</body></html>");
+      doc.close();
+  },
 
   // find current slide based upon location
   // first find target anchor and then look
@@ -1430,8 +1561,10 @@ var w3c_slidy = {
 
   show_slide: function (slide) {
     this.sync_background(slide);
-    window.scrollTo(0,0);
     this.remove_class(slide, "hidden");
+
+    // work around IE9 object rendering bug
+    setTimeout("window.scrollTo(0,0);", 1);
   },
 
   hide_slide: function (slide) {
@@ -1630,7 +1763,7 @@ var w3c_slidy = {
     if (!w3c_slidy.ns_pos && !w3c_slidy.ie7)
     {
       w3c_slidy.hide_toolbar();
-      setTimeout(function () {w3c_slidy.show_toolbar(); }, interval);
+      setTimeout(function () {w3c_slidy.show_toolbar();}, interval);
     }
   },
 
@@ -1857,7 +1990,7 @@ var w3c_slidy = {
 
   //  See e.g. http://www.quirksmode.org/js/events/keys.html for keycodes
   key_down: function (event) {
-    var key;
+    var key, target, tag;
 
     w3c_slidy.key_wanted = true;
 
@@ -1866,9 +1999,15 @@ var w3c_slidy = {
 
     // kludge around NS/IE differences 
     if (window.event)
+    {
       key = window.event.keyCode;
+      target = window.event.srcElement;
+    }
     else if (event.which)
+    {
       key = event.which;
+      target = event.target;
+    }
     else
       return true; // Yikes! unknown browser
 
@@ -1876,6 +2015,12 @@ var w3c_slidy = {
     // as for alt on Opera and Konqueror
     if (!key)
        return true;
+
+    // avoid interfering with keystroke
+    // behavior for non-slidy chrome elements
+    if (!w3c_slidy.slidy_chrome(target) &&
+        w3c_slidy.special_element(target))
+      return true;
 
     // check for concurrent control/command/alt key
     // but are these only present on mouse events?
@@ -1886,7 +2031,7 @@ var w3c_slidy = {
     // dismiss table of contents if visible
     if (w3c_slidy.is_shown_toc() && key != 9 && key != 16 && key != 38 && key != 40)
     {
-      w3c_slidy.hide_table_of_contents();
+      w3c_slidy.hide_table_of_contents(true);
 
       if (key == 27 || key == 84 || key == 67)
         return w3c_slidy.cancel(event);
@@ -1996,7 +2141,7 @@ var w3c_slidy = {
       var alert_msg = (w3c_slidy.mouse_click_enabled ?
                 "enabled" : "disabled") +  " mouse click advance";
 
-      alert(alert_msg.localize());
+      alert(w3c_slidy.localize(alert_msg));
       return w3c_slidy.cancel(event);
     }
     else if (key == 84 || key == 67)  // T or C for table of contents
@@ -2397,9 +2542,25 @@ var w3c_slidy = {
     w3c_slidy.selected_text_len = w3c_slidy.get_selected_text().length;
   },
 
+  mouse_button_down: function (e) {
+    w3c_slidy.selected_text_len = w3c_slidy.get_selected_text().length;
+    w3c_slidy.mouse_x = e.clientX;
+    w3c_slidy.mouse_y = e.clientY;
+  },
+
   // right mouse button click is reserved for context menus
   // it is more reliable to detect rightclick than leftclick
   mouse_button_click: function (e) {
+    if (!e)
+      var e = window.event;
+
+    if (Math.abs(e.clientX -w3c_slidy.mouse_x) +
+        Math.abs(e.clientY -w3c_slidy.mouse_y) > 10)
+      return true;
+
+    if (w3c_slidy.selected_text_len > 0)
+      return true;
+
     var rightclick = false;
     var leftclick = false;
     var middleclick = false;
@@ -2434,14 +2595,9 @@ var w3c_slidy = {
       // all browsers agree on 2 for right button
       rightclick = (e.button == 2);
     }
-    else leftclick = true;
-/*
-    alert("you clicked over a " + target.nodeName + " element\n" +
-    "w3c_slidy.mouse_click_enabled = " + w3c_slidy.mouse_click_enabled + "\n" +
-    "leftclick = " + leftclick + "\n" +
-    "selected text length = " + w3c_slidy.selected_text_len);
-    //alert("selected text length = " + w3c_slidy.selected_text_len);
-*/
+    else
+      leftclick = true;
+
     if (w3c_slidy.selected_text_len > 0)
     {
       w3c_slidy.stop_propagation(e);
@@ -2451,21 +2607,14 @@ var w3c_slidy = {
     }
 
     // dismiss table of contents
-    w3c_slidy.hide_table_of_contents();
+    w3c_slidy.hide_table_of_contents(false);
 
     // check if target is something that probably want's clicks
     // e.g. a, embed, object, input, textarea, select, option
     var tag = target.nodeName.toLowerCase();
 
     if (w3c_slidy.mouse_click_enabled && leftclick &&
-        tag != "a" &&
-        tag != "embed" &&
-        tag != "object" &&
-        tag != "video" &&
-        tag != "input" &&
-        tag != "textarea" &&
-        tag != "select" &&
-        tag != "option" &&
+        !w3c_slidy.special_element(target) &&
         !target.onclick)
     {
       w3c_slidy.next_slide(true);
@@ -2474,6 +2623,43 @@ var w3c_slidy = {
       e.returnValue = false;
       return false;
     }
+
+    return true;
+  },
+
+  special_element: function (element) {
+    if (this.has_class(element, "non-interactive"))
+      return false;
+
+    var tag = element.nodeName.toLowerCase();
+
+    return element.onkeydown ||
+      element.onclick ||
+      tag == "a" ||
+      tag == "embed" ||
+      tag == "object" ||
+      tag == "video" ||
+      tag == "audio" ||
+      tag == "svg" ||
+      tag == "canvas" ||
+      tag == "input" ||
+      tag == "textarea" ||
+      tag == "select" ||
+      tag == "option";
+  },
+
+  slidy_chrome: function (el) {
+    while (el)
+    {
+      if (el == w3c_slidy.toc ||
+          el == w3c_slidy.toolbar ||
+          w3c_slidy.has_class(el, "outline"))
+        return true;
+
+      el = el.parentNode;
+    }
+
+    return false;
   },
 
   get_key: function (e)
@@ -2510,7 +2696,7 @@ var w3c_slidy = {
   is_block: function (elem) {
     var tag = elem.nodeName.toLowerCase();
 
-    return tag == "ol" || tag == "ul" || tag == "p" ||
+    return tag == "ol" || tag == "ul" || tag == "p" || tag == "dl" ||
            tag == "li" || tag == "table" || tag == "pre" ||
            tag == "h1" || tag == "h2" || tag == "h3" ||
            tag == "h4" || tag == "h5" || tag == "h6" ||
@@ -2547,13 +2733,11 @@ var w3c_slidy = {
 
     w3c_slidy.key_wanted = false;
     return false;
-  }
-};
+  },
 
 // for each language define an associative array
 // and also the help text which is longer
 
-var w3c_slidy_i18n = {
   strings_es: {
     "slide":"pág.",
     "help?":"Ayuda",
@@ -2742,28 +2926,67 @@ var w3c_slidy_i18n = {
     "vänster- och högerpiltangenterna eller tangenterna Pg Up, Pg Dn. " +
     "Använd tangenterna S och B för att ändra textens storlek.",
 
-// each such language array is declared in the localize array
-// which is set on string prototype and used as in "foo".localize();
-  localize: {
-    "es":this.strings_es,
-    "ca":this.strings_ca,
-    "cs":this.strings_cs,
-    "nl":this.strings_nl,
-    "de":this.strings_de,
-    "pl":this.strings_pl,
-    "fr":this.strings_fr,
-    "hu":this.strings_hu,
-    "it":this.strings_it,
-    "el":this.strings_el,
-    "jp":this.strings_ja,
-    "zh":this.strings_zh,
-    "ru":this.strings_ru,
-    "sv":this.strings_sv
+  strings: { },
+
+  localize: function (src) {
+    if (src == "")
+      return src;
+
+     // try full language code, e.g. en-US
+     var s, lookup = w3c_slidy.strings[w3c_slidy.lang];
+
+     if (lookup)
+     {
+       s = lookup[src];
+
+       if (s)
+        return s;
+     }
+
+     // strip country code suffix, e.g.
+     // try en if undefined for en-US
+     var lg = w3c_slidy.lang.split("-");
+
+     if (lg.length > 1)
+     {
+       lookup = w3c_slidy.strings[lg[0]];
+
+       if (lookup)
+       {
+         s = lookup[src];
+
+         if (s)
+          return s;
+       }
+     }
+
+     // otherwise string as is
+     return src;
   },
 
-  init: function () {
-    var i18n = w3c_slidy_i18n;
+  init_localization: function () {
+    var i18n = w3c_slidy;
     var help_text = w3c_slidy.help_text;
+
+    // each such language array is declared in the localize array
+    // this is used as in  w3c_slidy.localize("foo");
+    this.strings = {
+      "es":this.strings_es,
+      "ca":this.strings_ca,
+      "cs":this.strings_cs,
+      "nl":this.strings_nl,
+      "de":this.strings_de,
+      "pl":this.strings_pl,
+      "fr":this.strings_fr,
+      "hu":this.strings_hu,
+      "it":this.strings_it,
+      "el":this.strings_el,
+      "jp":this.strings_ja,
+      "zh":this.strings_zh,
+      "ru":this.strings_ru,
+      "sv":this.strings_sv
+    },
+
     i18n.strings_es[help_text] = i18n.help_es;
     i18n.strings_ca[help_text] = i18n.help_ca;
     i18n.strings_cs[help_text] = i18n.help_cs;
@@ -2786,44 +3009,6 @@ var w3c_slidy_i18n = {
 
     if (!w3c_slidy.lang)
       w3c_slidy.lang = "en";
-
-    // add localize method to all strings
-    // for use as in "contents".localize()
-   String.prototype.localize = function() {
-     if (this == "")
-       return this;
-
-     // try full language code, e.g. en-US
-     var s, lookup = w3c_slidy_i18n.localize[w3c_slidy.lang];
-
-     if (lookup)
-     {
-       s = lookup[this];
-
-       if (s)
-        return s;
-     }
-
-     // strip country code suffix, e.g.
-     // try en if undefined for en-US
-     var lg = w3c_slidy.lang.split("-");
-
-     if (lg.length > 1)
-     {
-       lookup = w3c_slidy_i18n.localize[lg[0]];
-
-       if (lookup)
-       {
-         s = lookup[this];
-
-         if (s)
-          return s;
-       }
-     }
-
-     // otherwise string as is
-     return this;
-   };
   }
 };
 
