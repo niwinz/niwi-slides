@@ -13,8 +13,41 @@ Why?
 - Because we can!
 
 
-How we start? (1)
------------------
+This talk is not about django, is about flask.
+----------------------------------------------
+
+- Flask has worse design desisions...
+- Flask says litle and modular but is fake...
+- App abstraction is well and beautiful, but any one need
+  mutiple applications in one file?
+- ...
+
+
+Advantages of using django.
+---------------------------
+
+- Scales much well, if size of application increases.
+- Has much more comunity.
+- Better python3 support.
+- ...
+
+
+How we start?: Views
+--------------------
+
+Simple django, view. Can be used as is.
+
+[source, python]
+----
+from django.http import HttpResponse
+
+def index(request):
+    return HttpResponse("Hello World!")
+----
+
+
+
+
 
 Very simple!
 
