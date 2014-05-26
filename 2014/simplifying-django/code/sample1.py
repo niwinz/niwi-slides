@@ -6,7 +6,6 @@ from django.http import HttpResponse
 
 settings.configure(
     DEBUG=True,
-    SECRET_KEY="secret",
     ROOT_URLCONF=sys.modules[__name__],
 )
 
@@ -18,5 +17,5 @@ urlpatterns = [
 ]
 
 if __name__ == "__main__":
-    from django.core.management import execute_from_command_line
-    execute_from_command_line(sys.argv)
+    from django.core import management as m
+    m.execute_from_command_line(sys.argv)

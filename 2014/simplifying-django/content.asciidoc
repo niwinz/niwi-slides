@@ -35,7 +35,7 @@ Advantages of using django.
 How we start?: Views
 --------------------
 
-Simple django, view. Can be used as is.
+Simple! Django has views as functions or as classes:
 
 [source, python]
 ----
@@ -47,9 +47,49 @@ def index(request):
 
 
 
+How we start?: Url Mappings
+---------------------------
+
+[source, python]
+----
+from django.conf.urls import url
+
+urlpatterns = [
+    url(r"^$", index, name="index"),
+]
+----
+
+Observations:
+
+- No url mappings as decorator like flask.
+- Url mappings coupled to function seems bad design for scale ;)
 
 
-Very simple!
+
+How we start?: App
+------------------
+
+
+Django enforces some settings by default.
+
+
+[source, python]
+----
+from django.conf import settings
+settings.configure(
+    DEBUG=True,
+    ROOT_URLCONF=sys.modules[__name__],
+)
+----
+
+Observations:
+
+- Django does not have a concept of application.
+- *How many times have you run two apps or more in one file?*
+
+
+How we start?: Complete example
+-------------------------------
 
 [source, python]
 ----
@@ -61,7 +101,6 @@ from django.http import HttpResponse
 
 settings.configure(
     DEBUG=True,
-    SECRET_KEY="secret",
     ROOT_URLCONF=sys.modules[__name__],
 )
 
@@ -71,6 +110,149 @@ def index(request):
 urlpatterns = [
     url(r"^$", index, name="index"),
 ]
+
+if __name__ == "__main__":
+    from django.core import management as m
+    m.execute_from_command_line(sys.argv)
 ----
 
+
+How we can improve it?: flask like route decorator
+--------------------------------------------------
+
+.Url decorator
+[source, python]
+----
+def route(rx:str, name:str, fn=None):
+    if fn is None:
+        return partial(route, rx, name)
+
+    _g = globals()
+    _g.setdefault("urlpatterns", [])
+    _g["urlpatterns"].append(url(rx, fn, name=name))
+    return fn
+----
+
+.How we use it?
+[source,python]
+----
+@route(r"^$", name="index")
+def index(request):
+    return HttpResponse("Powered by Django v2")
+----
+
+
+How we can improve it?: flask like smart response (1)
+-----------------------------------------------------
+
+Now try return simple string instead of response objects.
+
+.Define smart response decorator
+[source, python]
+----
+def smart_view(fn):
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        response = fn(*args, **kwargs)
+        if isinstance(response, HttpResponse):
+            return response
+        return HttpResponse(response)
+
+    return _wrapper
+----
+
+
+How we can improve it?: flask like smart response (2)
+-----------------------------------------------------
+
+.Define new route function that uses previously defined smart_view decorator
+[source, python]
+----
+def route(rx:str, name:str, fn=None):
+    if fn is None:
+        return partial(route, rx, name)
+
+    _g = globals()
+    _g.setdefault("urlpatterns", [])
+    _g["urlpatterns"].append(url(rx, smart_view(fn),
+                                 name=name))
+    return fn
+----
+
+
+How we can improve it?: flask like smart response (3)
+-----------------------------------------------------
+
+.Final views
+[source, python]
+----
+@route(r"^$", name="index")
+def index(request):
+    return "Powered by Django v3"
+----
+
+
+How we can improve it?: flask like smart response (4)
+-----------------------------------------------------
+
+.Complete example
+[source, python]
+----
+import sys
+from functools import partial, wraps
+
+from django.conf.urls import url
+from django.conf import settings
+from django.http import HttpResponse
+
+settings.configure(
+    DEBUG=True,
+    ROOT_URLCONF=sys.modules[__name__],
+)
+
+def smart_view(fn):
+    @wraps(fn)
+    def _wrapper(*args, **kwargs):
+        response = fn(*args, **kwargs)
+        if isinstance(response, HttpResponse):
+            return response
+        return HttpResponse(response)
+
+    return _wrapper
+
+def route(rx:str, name:str, fn=None):
+    if fn is None:
+        return partial(route, rx, name)
+
+    _g = globals()
+    _g.setdefault("urlpatterns", [])
+    _g["urlpatterns"].append(url(rx, smart_view(fn),
+                                 name=name))
+    return fn
+
+@route(r"^$", name="index")
+def index(request):
+    return "Powered by Django v3"
+
+if __name__ == "__main__":
+    from django.core import management as m
+    m.execute_from_command_line(sys.argv)
+----
+
+
+Conclusion
+----------
+
+- My preference is use well designed software.
+- Choice the best tool for each use case.
+- Flask seems very good alternative, but not use it in apps with more that one file ;)
+
+
+Questions?
+----------
+
+Me:
+
+- Twitter: link:https://twitter.com/niwibe[*@niwibe*]
+- Github: link:https://github.com/niwibe[github.com/niwibe]
 
