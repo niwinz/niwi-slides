@@ -9,16 +9,16 @@ Why?
 ----
 
 - Because django is the most used and the most powerful web framework on python.
-- Because, alternatives sucks (flask) or are not general puropose (tornado).
+- Because, alternatives suck (flask) or are not general purpose (tornado).
 - Because we can!
 
 
 This talk is not about django, is about flask.
 ----------------------------------------------
 
-- Flask has worse design desisions...
-- Flask says litle and modular but is "fake"...
-- App abstraction is well and beautiful, but any one need
+- Flask has worse design decisions...
+- Flask says little and modular but is "fake"...
+- App abstraction is well and beautiful, but anyone need
   mutiple applications in one file?
 - ...
 
@@ -26,14 +26,14 @@ This talk is not about django, is about flask.
 Advantages of using django.
 ---------------------------
 
-- Scales much well, if size of application increases.
-- Has much more comunity.
+- It scales much well, if size of application increases.
+- It has much more comunity.
 - Better python3 support.
 - ...
 
 
-How we start?: Views
---------------------
+How do we start?: Views
+-----------------------
 
 Simple! Django has views as functions or as classes:
 
@@ -47,7 +47,7 @@ def index(request):
 
 
 
-How we start?: Url Mappings
+How do we start?: Url Mappings
 ---------------------------
 
 [source, python]
@@ -62,12 +62,12 @@ urlpatterns = [
 Observations:
 
 - No url mappings as decorator like flask.
-- Url mappings coupled to function seems bad design for scale ;)
+- Url mappings coupled to a function seems bad design for scale ;)
 
 
 
-How we start?: App
-------------------
+How do we start?: App
+---------------------
 
 
 Django enforces some settings by default.
@@ -88,8 +88,8 @@ Observations:
 - *How many times have you run two apps or more in one file?*
 
 
-How we start?: Complete example
--------------------------------
+How do we start?: Complete example
+----------------------------------
 
 [source, python]
 ----
@@ -117,8 +117,8 @@ if __name__ == "__main__":
 ----
 
 
-How we can improve it?: flask like route decorator
---------------------------------------------------
+How do we can improve it?: flask like route decorator
+------------------------------------------------------
 
 .Url decorator
 [source, python]
@@ -142,10 +142,10 @@ def index(request):
 ----
 
 
-How we can improve it?: flask like smart response (1)
------------------------------------------------------
+How do we can improve it?: flask like smart response (1)
+---------------------------------------------------------
 
-Now try return simple string instead of response objects.
+Now try to return a simple string instead of response objects.
 
 .Define smart response decorator
 [source, python]
@@ -162,7 +162,7 @@ def smart_view(fn):
 ----
 
 
-How we can improve it?: flask like smart response (2)
+How do we can improve it?: flask like smart response (2)
 -----------------------------------------------------
 
 .Define new route function that uses previously defined smart_view decorator
@@ -180,7 +180,7 @@ def route(rx:str, name:str, fn=None):
 ----
 
 
-How we can improve it?: flask like smart response (3)
+How do we can improve it?: flask like smart response (3)
 -----------------------------------------------------
 
 .Final views
@@ -192,7 +192,7 @@ def index(request):
 ----
 
 
-How we can improve it?: flask like smart response (4)
+How do we can improve it?: flask like smart response (4)
 -----------------------------------------------------
 
 .Complete example
@@ -243,9 +243,9 @@ if __name__ == "__main__":
 Conclusion
 ----------
 
-- My preference is use well designed software.
-- Choice the best tool for each use case.
-- Flask seems very good alternative, but not use it in apps with more that one file ;)
+- My preference is to use well designed software.
+- Choose the best tool for each use case.
+- Flask seems very good alternative, but do not use it in apps with more that one file ;)
 
 
 Questions?
