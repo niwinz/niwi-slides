@@ -1,0 +1,478 @@
+Error Handling
+==============
+Andrey Antukh
+:deckjs_theme: swiss
+:deckjs_transition: fade
+:navigation:
+:status:
+:source-highlighter: pygments
+:pygments-style: friendly
+:split:
+
+
+[[historic-1]]
+Let's start with some historic approach
+---------------------------------------
+
+**How we did things in C?**
+
+.Api definition
+[source, c]
+----
+MYAPI_ERROR get_object_size(MYAPIHandle h, int* returned_size);
+----
+
+[options="step"]
+.Error handlign
+[source, c]
+----
+int size;
+if(get_object_size(h, &size) != MYAPI_SUCCESS) {
+    // Error handling
+}
+----
+
+<<<
+
+.Api definition
+[source, c]
+----
+int get_object_size(MYAPIHandle h, MYAPI_ERROR* error);
+----
+
+[options="step"]
+.Error handling
+[source, c]
+----
+MYAPIError error;
+int size;
+size = get_object_size(h, &error);
+if(error != MYAPI_SUCCESS) {
+    // Error handling
+}
+----
+
+<<<
+
+- Serves as example code to see where we came from.
+- Seems very low level and hacky way to do error handling.
+- Some modern languages uses similar ways of error handling :(
+
+NULL
+----
+
+Let start talking about `NULL`!
+
+[options="step"]
+- It exists in almost all _modern_ languages.
+- Represents a null pointer in a good portion of these "modern" languages.
+- The source of all evil.
+
+
+<<<
+
+Demostration:
+
+[source, java]
+----
+String version = computer.getSoundcard().getUSB().getVersion();
+----
+
+- What is happens if sound card does not exists?
+- What is happens if sound card does not have usb?
+
+**If sound card does not exists, the `getUSB()` call will raise a `NullPointerException`**
+
+<<<
+
+This is the way to do it in a classic way using java:
+
+[source, java]
+----
+String version = "UNKNOWN";
+if (computer != null) {
+    Soundcard soundcard = computer.getSoundcard();
+    if (soundcard != null) {
+        USB usb = soundcard.getUSB();
+        if (usb != null){
+            version = usb.getVersion();
+        }
+    }
+}
+----
+
+[options="step"]
+- Seems very ugly
+- Adding new conditions make it more ugly.
+- **Seems should to be an other and better way to do it.**
+
+<<<
+
+Some languages offers sugar syntax for handling null values:
+
+.Clojure
+[source, clojure]
+----
+(some-> (get-sound-card computer) get-usb get-version)
+----
+
+.Groovy
+[source, groovy]
+----
+String version = computer?.getSoundcard()?.getUSB()?.getVersion();
+----
+
+<<<
+
+Some other languages offers the `Optional<T>` type:
+
+.Java <= 7 (using Guava Library)
+[source, java]
+----
+Optional<Version> version = Optional.absent();
+Optional<SoundCard> soundcard = computer.getSoundcard();
+
+if (soundcard.isPresent()) {
+   Optional<Usb> usb = soundcard.get().getUSB();
+   if (usb.isPresent()) {
+       version = usb.get().getVersion();
+   }
+}
+----
+
+[options="step"]
+- Looks very ugly, very similar to handling with `NULL`
+- Seems add more accidental complexity without improving.
+- With java <= 7 it is not a real alternative to handling with `NULL`.
+
+<<<
+
+Java 8 add some improvements in this area:
+
+[source, java]
+----
+String version = computer.flatMap(Computer::getSoundcard)
+                         .flatMap(Soundcard::getUSB)
+                         .map(USB::getVersion)
+                         .orElse("UNKNOWN");
+----
+
+<<<
+
+**Clojure and `nil`**
+
+[options="step"]
+- Clojure inherits java's null pointer, called `nil` in Clojure.
+- Clojure seems to embrace the null pointer.
+- `nil` is a first class value and it can implement protocols.
+
+<<<
+
+[source, clojure]
+----
+(defprotocol ISum
+  (add [_][_ _] "Sum two values"))
+
+(extend-protocol ISum
+  nil
+  (add [_] 0)
+  (add [_ x] (+ 0 (add x)))
+
+  Long
+  (add [x] x)
+  (add [x y] (+ 0 (add y))))
+----
+
+<<<
+
+[source, clojure]
+----
+(+ 1 nil)
+;; => NullPointerException   clojure.lang.Numbers.ops (Numbers.java:961)
+
+(+ nil 2)
+;; => NullPointerException   clojure.lang.Numbers.ops (Numbers.java:961)
+
+(add 1 nil)
+;; => 1
+
+(add nil 2)
+;; => 2
+----
+
+<<<
+
+Summary:
+
+[options="step"]
+- Null if a source of much of problems.
+- Null should be avoided.
+- Some languages has good improvements for handling with null pointers.
+- A fortuitous set of decisions in Clojure has reduced the magnitude of the problem.
+- Null as error result does not represents anything (are there an error message?)
+- There are better way to handling errors.
+
+
+Exceptions
+----------
+
+**What is an exception?**
+
+_An exception is an event that occurs during the execution of a
+program that disrupts the normal flow of instructions._
+
+- Used as error handling mechanism in almost all object oriented languages.
+- Is the next generation goto.
+- Exceptions should be used for exceptional cases.
+- try-catch-finally idiom is used as control/conditional structure (wrong).
+- Usually used for label ordinary errors such as failing to open a file
+  as exceptional.
+
+Good literature about this:
+
+- http://250bpm.com/blog:4
+- http://stackoverflow.com/questions/1736146/why-is-exception-handling-bad
+- http://blogs.atlassian.com/2011/05/exceptions_are_bad/
+
+<<<
+
+Exceptions breaks encapsulation and single resposability.
+
+[source, python]
+----
+def read_report_file(name:str, owner:User) -> Report:
+    try:
+        path = os.path.join(REPORTS_DIR, name)
+        file = io.open(path, "rt")
+        return process_file_and_get_report(file, owner)
+
+    except PermissionDeniend as e:
+        send_notification_about_unauthorized_request(e, owner)
+        raise e
+
+    except FileNotFound as e:
+        raise ReportNotFound("Report file does not exists") from e
+
+    finally:
+        file.close()
+----
+
+<<<
+
+With previous example:
+
+[options="step"]
+- It's a clear violation of the Single Responsibility Principle. By definition, anything
+  function using a try/catch is doing at least two things: application logic and handling
+  an error for one exception type. It only gets worse as more exception types are propagated
+  up the call chain. And let’s not forget the finally clause! So that’s 1 responsibility for
+  application logic, n responsibilities for n catch clauses, and 1 responsibility for the
+  finally clause to do any clean up. **This does way too much.**
+- It's a violation of the Open/Closed Principle. If you want to add another catch clause,
+  you have to dive into the guts of a function.
+
+<<<
+
+Let see an other example:
+
+[source, groovy]
+----
+Map cleanFormData(final Map formdata) {
+    Map cleanedData = {}
+    try {
+        cleanedData["email"] = cleanEmailField(formdata, "email")
+        cleanedData["username"] = cleanUsernameField(formdata, "username")
+        cleanedData["password"] = cleanPasswordField(formdata, "password")
+    } catch (InvalidEmailException e) {
+        log.info("Validate error with invalid email", e)
+        throw new WrongArgumentsException(e);
+    } catch (InvalidUsernameException e) {
+        log.info("Validate error with invalid username", e)
+        throw new WrongArgumentsException(e);
+    } catch (InvalidPasswordException e) {
+        log.info("Validate error with invalid password", e)
+        throw new WrongArgumentsException(e);
+    }
+    return cleanedData;
+}
+----
+
+<<<
+
+[source, clojure]
+----
+(defn clean-form-data
+  [data]
+  (try
+    (reduce (fn [acc key]
+               (case key
+                 :email (assoc acc :email (clean-email-field data key))
+                 :username (assoc acc :username (clean-username-field data key))
+                 :password (assoc acc :password (clean-password-field data key))))
+            {} (keys data))
+    (catch InvalidEmailException e
+      (log/info "Validate error with invalid email" e))
+    (catch InvalidUsernameException e
+      (log/info "Validate error with invalid email" e))
+    (catch InvalidPasswordException e
+      (log/info "Validate error with invalid password" e))))
+----
+
+<<<
+
+Summary:
+
+[options="step"]
+- Exceptions are no so bad as `NULL`
+- Can return more information about error message.
+- Works as goto, and goto is not the best good practice.
+- Exceptions should be used for exceptional cases.
+- Exceptions are less composable that...
+
+
+[options="step"]
+**But, we can do it better?**
+
+[options="step"]
+_It's possible! Let try with exception as value._
+
+
+Error as value
+--------------
+
+- Golang is good example of language designed for use that type of error handling.
+- Using that in clojure is a quite natural as in Go.
+- Can be used in almost all languages.
+- Seems a old fashion way to handle errors (like C) but without hacks.
+
+<<<
+
+Let see an example using python.
+
+Firstly define the validation functions:
+
+[source, python]
+----
+def clean_email(params:dict):
+    if re.match(params.get("email", ""), EMAIL_REGEX):
+        return (params, None)
+    return (None, "Email is invalid")
+
+def clean_phone(params:dict):
+    if re.match(params.get("phone", ""), PHONE_REGEX):
+        return (params, None)
+    return (None, "Phone is invalid")
+----
+
+<<<
+
+Now, compose the previous validators functions in one more complex:
+
+[source, python]
+----
+def validate_form(params):
+    params, err = clean_email(params)
+    if err:
+       return err
+    params, err = clean_phone(params)
+    if err:
+       return err
+----
+
+[options="step"]
+- Validation can be very verbose if the number of fields grows.
+- The expressiveness of the used language can determine the usage of this technique.
+- Python and Go lang aren't good example of expressiveness.
+
+[options="step"]
+**Let see how we can done same thing with _Clojure_.**
+
+
+<<<
+
+Firstly, define the validation functions:
+
+[source, clojure]
+----
+(defn clean-email [params]
+  "Ensure (params :email) matches /\w@\w\.\w/"
+  (if (re-find #"\w@\w\.\w" (params :email))
+    [params nil]
+    [nil "Please enter an email address"]))
+
+(defn clean-phone [params]
+  "Ensure phone number matches /\([0-9]{3}\) [0-9]{3}-[0-9]{4}/"
+  (if (re-find #"\([0-9]{3}\) [0-9]{3}-[0-9]{4}" (params :phone))
+    [params nil]
+    [nil "Please enter your phone number in (555) 555-5555 format."]))
+
+(defn clean-state [params]
+  "Ensure state is one of OR or WA. Cascadians unite!"
+  (case (params :state)
+    "WA" [params nil]
+    "OR" [params nil]
+    [nil "We only want people from Oregon or Washington, for some reason."]))
+----
+
+<<<
+
+This is a first atempt of compose the previously validators:
+
+[source,clojure]
+----
+(defn clean-contact [params]
+  (let [[params err] (clean-email params)
+        [params err] (if (nil? err) (clean-phone params) [nil err])
+        [params err] (if (nil? err) (clean-state params) [nil err])]
+    [params err])
+----
+
+[options="step"]
+- It has less code lines that python.
+- Looks ugly!
+- Can we do it better?
+
+<<<
+
+**YES**
+
+.Define a function for compose validation
+[source, clojure]
+----
+(defn apply-or-error [f [val err]]
+  (if (nil? err)
+    (f val)
+    [nil err]))
+----
+
+Now, the previous code it conveted to something like this:
+
+[source, clojure]
+----
+(defn clean-contact [params]
+  (->> (clean-email params)
+       (apply-or-error clean-phone)
+       (apply-or-error clean-state)))
+----
+
+[options="step"]
+- Looks much better.
+- Can we do it better?
+
+<<<
+
+Obviously!
+
+[source, clojure]
+----
+(defmacro err->> [val & fns]
+  (let [fns (for [f fns] `(apply-or-error ~f))]
+    `(->> [~val nil]
+          ~@fns)))
+
+(defn clean-contact [params]
+  (err->> params
+          clean-email
+          clean-phone
+          clean-state))
+----
