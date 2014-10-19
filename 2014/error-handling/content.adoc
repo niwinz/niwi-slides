@@ -58,16 +58,15 @@ if(error != MYAPI_SUCCESS) {
 - Seems very low level and hacky way to do error handling.
 - Some modern languages uses similar ways of error handling :(
 
-NULL
-----
+NULL Pointer
+------------
 
-Let start talking about `NULL`!
+Consist of usage of **null pointer** as result of erroneous operation.
 
 [options="step"]
 - It exists in almost all _modern_ languages.
 - Represents a null pointer in a good portion of these "modern" languages.
 - The source of all evil.
-
 
 <<<
 
@@ -113,7 +112,7 @@ Some languages offers sugar syntax for handling null values:
 .Clojure
 [source, clojure]
 ----
-(some-> (get-sound-card computer) get-usb get-version)
+(some-> computer get-sound-card get-usb get-version)
 ----
 
 .Groovy
@@ -126,7 +125,7 @@ String version = computer?.getSoundcard()?.getUSB()?.getVersion();
 
 Some other languages offers the `Optional<T>` type:
 
-.Java <= 7 (using Guava Library)
+.Java 7 (using Guava Library)
 [source, java]
 ----
 Optional<Version> version = Optional.absent();
@@ -141,9 +140,8 @@ if (soundcard.isPresent()) {
 ----
 
 [options="step"]
-- Looks very ugly, very similar to handling with `NULL`
-- Seems add more accidental complexity without improving.
-- With java <= 7 it is not a real alternative to handling with `NULL`.
+- Looks very similar to handling with `NULL`.
+- Seems add more accidental complexity without improving anything.
 
 <<<
 
@@ -156,6 +154,10 @@ String version = computer.flatMap(Computer::getSoundcard)
                          .map(USB::getVersion)
                          .orElse("UNKNOWN");
 ----
+
+[options="step"]
+- Better that java 7 version.
+- Continues having a lot of accidental complexity.
 
 <<<
 
@@ -181,23 +183,12 @@ String version = computer.flatMap(Computer::getSoundcard)
   Long
   (add [x] x)
   (add [x y] (+ 0 (add y))))
-----
 
-<<<
-
-[source, clojure]
-----
 (+ 1 nil)
-;; => NullPointerException   clojure.lang.Numbers.ops (Numbers.java:961)
-
-(+ nil 2)
 ;; => NullPointerException   clojure.lang.Numbers.ops (Numbers.java:961)
 
 (add 1 nil)
 ;; => 1
-
-(add nil 2)
-;; => 2
 ----
 
 <<<
@@ -208,8 +199,9 @@ Summary:
 - Null if a source of much of problems.
 - Null should be avoided.
 - Some languages has good improvements for handling with null pointers.
+- Not works well with core.async (clojure).
 - A fortuitous set of decisions in Clojure has reduced the magnitude of the problem.
-- Null as error result does not represents anything (are there an error message?)
+- Null is opaque error, because it not contains any error message.
 - There are better way to handling errors.
 
 
@@ -221,19 +213,20 @@ Exceptions
 _An exception is an event that occurs during the execution of a
 program that disrupts the normal flow of instructions._
 
+[options="step"]
 - Used as error handling mechanism in almost all object oriented languages.
 - Is the next generation goto.
-- Exceptions should be used for exceptional cases.
-- try-catch-finally idiom is used as control/conditional structure (wrong).
 - Usually used for label ordinary errors such as failing to open a file
   as exceptional.
 
+[options="step"]
+====
 Good literature about this:
 
 - http://250bpm.com/blog:4
 - http://stackoverflow.com/questions/1736146/why-is-exception-handling-bad
 - http://blogs.atlassian.com/2011/05/exceptions_are_bad/
-
+====
 <<<
 
 Exceptions breaks encapsulation and single resposability.
@@ -261,7 +254,6 @@ def read_report_file(name:str, owner:User) -> Report:
 
 With previous example:
 
-[options="step"]
 - It's a clear violation of the Single Responsibility Principle. By definition, anything
   function using a try/catch is doing at least two things: application logic and handling
   an error for one exception type. It only gets worse as more exception types are propagated
@@ -271,71 +263,19 @@ With previous example:
 - It's a violation of the Open/Closed Principle. If you want to add another catch clause,
   you have to dive into the guts of a function.
 
-<<<
-
-Let see an other example:
-
-[source, groovy]
-----
-Map cleanFormData(final Map formdata) {
-    Map cleanedData = {}
-    try {
-        cleanedData["email"] = cleanEmailField(formdata, "email")
-        cleanedData["username"] = cleanUsernameField(formdata, "username")
-        cleanedData["password"] = cleanPasswordField(formdata, "password")
-    } catch (InvalidEmailException e) {
-        log.info("Validate error with invalid email", e)
-        throw new WrongArgumentsException(e);
-    } catch (InvalidUsernameException e) {
-        log.info("Validate error with invalid username", e)
-        throw new WrongArgumentsException(e);
-    } catch (InvalidPasswordException e) {
-        log.info("Validate error with invalid password", e)
-        throw new WrongArgumentsException(e);
-    }
-    return cleanedData;
-}
-----
-
-<<<
-
-[source, clojure]
-----
-(defn clean-form-data
-  [data]
-  (try
-    (reduce (fn [acc key]
-               (case key
-                 :email (assoc acc :email (clean-email-field data key))
-                 :username (assoc acc :username (clean-username-field data key))
-                 :password (assoc acc :password (clean-password-field data key))))
-            {} (keys data))
-    (catch InvalidEmailException e
-      (log/info "Validate error with invalid email" e))
-    (catch InvalidUsernameException e
-      (log/info "Validate error with invalid email" e))
-    (catch InvalidPasswordException e
-      (log/info "Validate error with invalid password" e))))
-----
-
-<<<
-
+[options="step"]
+====
 Summary:
 
-[options="step"]
 - Exceptions are no so bad as `NULL`
+- Exceptions can be used in a "good way".
 - Can return more information about error message.
 - Works as goto, and goto is not the best good practice.
 - Exceptions should be used for exceptional cases.
-- Exceptions are less composable that...
-
+====
 
 [options="step"]
 **But, we can do it better?**
-
-[options="step"]
-_It's possible! Let try with exception as value._
-
 
 Error as value
 --------------
@@ -356,12 +296,17 @@ Firstly define the validation functions:
 def clean_email(params:dict):
     if re.match(params.get("email", ""), EMAIL_REGEX):
         return (params, None)
-    return (None, "Email is invalid")
+    return (None, "Please enter an email address")
 
 def clean_phone(params:dict):
     if re.match(params.get("phone", ""), PHONE_REGEX):
         return (params, None)
-    return (None, "Phone is invalid")
+    return (None, "Please enter your phone number in (555) 555-5555 format.")
+
+def clean_state(params:dict):
+    if params.get("state", "") in ["WA", "OR"]:
+       return (params, None)
+    return (None, "We only want people from Oregon or Washington, for some reason.")
 ----
 
 <<<
@@ -377,16 +322,45 @@ def validate_form(params):
     params, err = clean_phone(params)
     if err:
        return err
+    params, err = clean_state(params)
+    if err:
+       return err
 ----
 
 [options="step"]
+**Obviously it can be improved...**
+
+<<<
+
+[source, python]
+----
+def validate_form(params):
+    validators = [clean_email,
+                  clean_phone,
+                  clean_state]
+
+    for validator in validators:
+        params, err = validator(params)
+        if err:
+           return err,
+----
+
+
+[options="step"]
+====
+- It looks better and can be much less verbose that the previous version. 
+- But, it still unexpressive.
+====
+
+[options="step"]
+====
 - Validation can be very verbose if the number of fields grows.
 - The expressiveness of the used language can determine the usage of this technique.
 - Python and Go lang aren't good example of expressiveness.
+====
 
 [options="step"]
 **Let see how we can done same thing with _Clojure_.**
-
 
 <<<
 
@@ -434,9 +408,8 @@ This is a first atempt of compose the previously validators:
 
 <<<
 
-**YES**
+Define a function for that will help in validation composition.
 
-.Define a function for compose validation
 [source, clojure]
 ----
 (defn apply-or-error [f [val err]]
@@ -445,7 +418,7 @@ This is a first atempt of compose the previously validators:
     [nil err]))
 ----
 
-Now, the previous code it conveted to something like this:
+Now, the previous `clean-contact` function can looks like this:
 
 [source, clojure]
 ----
@@ -461,18 +434,193 @@ Now, the previous code it conveted to something like this:
 
 <<<
 
-Obviously!
-
+Define one macro for sytactic sugar
 [source, clojure]
 ----
 (defmacro err->> [val & fns]
   (let [fns (for [f fns] `(apply-or-error ~f))]
     `(->> [~val nil]
           ~@fns)))
+----
 
+
+Now, here a result of using the previously defined macro:
+
+[source, clojure]
+----
 (defn clean-contact [params]
   (err->> params
           clean-email
           clean-phone
           clean-state))
 ----
+
+<<<
+
+Summary:
+
+[options="step"]
+- In some languages it can be one of the most expressive way to handle errors.
+- Not uses bad practices like goto or something similar.
+- Can be very verbose on some languages.
+- In languages like Clojure, Elixir and Haskell it can be implemented using protocols/typeclasses.
+
+[options="step"]
+**But let's go one step further!**
+
+
+Monadic error handling
+----------------------
+
+**NOTE:** Explaining that is a Monad is out of scope of this talk.
+
+[options="step"]
+- Error handling defined by type.
+- Most used in Haskell.
+- Can be used in Clojure in same way as in Haskell.
+- Other languages also can use that but much less expressivenes (can be looks ugly).
+
+[options="step"]
+.Haskell pseudocode example
+[source, haskell]
+----
+func x = do
+    a <- operationThatMightFail 10
+    b <- operationThatMightFail 20
+    c <- operationThatMightFail 30
+    return (a + b + c)
+----
+
+<<<
+
+Let try to do the contact validation example, but using monadic error handling and clojure.
+
+For it I'll use link:https://github.com/niwibe/cats[cats library] and the `Either` monad.
+
+<<<
+
+Firstly, define the validation functions:
+
+[source, clojure]
+----
+(require '[cats.monad.either :as either])
+
+(defn clean-email [params]
+  (if (re-find #"\w@\w\.\w" (params :email))
+    (either/right params)
+    (either/left "Please enter an email address")))
+
+(defn clean-phone [params]
+  (if (re-find #"\([0-9]{3}\) [0-9]{3}-[0-9]{4}" (params :phone))
+    (either/right params)
+    (either/left "Please enter your phone number in (555) 555-5555 format.")))
+
+(defn clean-state [params]
+  (case (params :state)
+    "WA" (either/right params)
+    "OR" (either/right params)
+    (either/left "We only want people from Oregon or Washington, for some reason.")))
+----
+
+<<<
+
+Now, the validators return a instance of Either instead of vector of two elements.
+
+Let see how can be looks the composition of previously defined validators:
+
+[source, clojure]
+----
+(require '[cats.core as m])
+
+(defn clean-contact [params]
+  (m/>>= (either/right params)
+         clean-email
+         clean-phone
+         clean-state))
+----
+
+[options="step"]
+- It looks like the last example of previous error handling way.
+- It has the advantage that the composition is defined on type (you should not reapetly define different
+  ways of compose different errors).
+- You can create own types and mix them in the same pipeline.
+
+<<<
+
+Also, it works better with async/streams flows (ex core.async).  Suppose that validator functions
+return channels instead of values.
+
+[source, clojure]
+----
+(defn clean-contact [params]
+  (go
+    (m/>> (<! (clean-email params))
+          (<! (clean-phone params))
+          (<! (clean-state params))
+          (either/right params))))
+----
+
+<<<
+
+Literature:
+
+- http://adambard.com/blog/acceptable-error-handling-in-clojure/
+- http://brehaut.net/blog/2011/error_monads
+- http://yellerapp.com/posts/2014-06-27-api-error-handling.html
+- https://www.fpcomplete.com/school/starting-with-haskell/basics-of-haskell/10_Error_Handling\
+- http://www.lispcast.com/nil-punning
+- http://swannodette.github.io/2013/08/31/asynchronous-error-handling/
+- http://tersesystems.com/2012/12/27/error-handling-in-scala/
+
+<<<
+
+Example of ring handler that uses monadic error handling.
+
+[source, clojure]
+----
+(defn document-revs-list
+  [{:keys [params] :as req}]
+  (m/mlet [:let   [dbname   (:dbname params)
+                   collname (:collname params)
+                   docid (:docid params)]
+           result (api/get-revisions-of dbname collname docid)]
+    (m/return (ok (map s/to-plain-object result)))))
+----
+
+<<<
+
+Ring middleware used for convert responses from handlers that returns
+monads.
+
+[source, clojure]
+----
+(defn wrap-monadic-ctrl
+  [handler]
+  (fn [req]
+    (let [response (handler req)]
+      (cond
+       (either/left? response)
+       (left-as-response response)
+
+       (either/right? response)
+       (either/from-either response)))))
+----
+
+
+TL;DR
+-----
+
+- Throw Exception to signal unexpected failure in purely functional code.
+- Use Maybe to return optional values.
+- Use Either to report expected failure.
+
+
+End / Q&A
+---------
+
+This talk: https://github.com/niwibe/niwi-slides/tree/master/2014/error-handling
+
+My twitter: https://twitter.com/niwibe
+
+My github: https://github.com/niwibe
+
