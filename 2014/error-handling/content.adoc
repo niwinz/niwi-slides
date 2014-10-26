@@ -269,9 +269,10 @@ Summary:
 
 - Exceptions are no so bad as `NULL`
 - Exceptions can be used in a "good way".
-- Can return more information about error message.
-- Works as goto, and goto is not the best good practice.
-- Exceptions should be used for exceptional cases.
+- Can return more information about error message unlike NULL or Maybe/Optional
+- Can works as goto and usually used like goto on popular object oriented languages.
+- Exceptions should be used for exceptional cases (haskell have exceptions... but for
+  exceptional cases)
 ====
 
 [options="step"]
@@ -348,7 +349,7 @@ def validate_form(params):
 
 [options="step"]
 ====
-- It looks better and can be much less verbose that the previous version. 
+- It looks better and it's be much less verbose that the previous version.
 - But, it still unexpressive.
 ====
 
@@ -356,7 +357,7 @@ def validate_form(params):
 ====
 - Validation can be very verbose if the number of fields grows.
 - The expressiveness of the used language can determine the usage of this technique.
-- Python and Go lang aren't good example of expressiveness.
+- Python, Java, Groovy, Go, ... lang aren't good example of expressiveness.
 ====
 
 [options="step"]
@@ -434,7 +435,7 @@ Now, the previous `clean-contact` function can looks like this:
 
 <<<
 
-Define one macro for sytactic sugar
+Define one macro for sytactic sugar.
 [source, clojure]
 ----
 (defmacro err->> [val & fns]
@@ -478,7 +479,7 @@ Monadic error handling
 - Error handling defined by type.
 - Most used in Haskell.
 - Can be used in Clojure in same way as in Haskell.
-- Other languages also can use that but much less expressivenes (can be looks ugly).
+- Other languages also can use that but much less expressivenes (can be look very ugly).
 
 [options="step"]
 .Haskell pseudocode example
@@ -541,23 +542,36 @@ Let see how can be looks the composition of previously defined validators:
 
 [options="step"]
 - It looks like the last example of previous error handling way.
-- It has the advantage that the composition is defined on type (you should not reapetly define different
+- It has the advantage that the composition and behavior is defined on type (you should not reapetly define different
   ways of compose different errors).
 - You can create own types and mix them in the same pipeline.
 
 <<<
 
-Also, it works better with async/streams flows (ex core.async).  Suppose that validator functions
-return channels instead of values.
+What is happens if we are using third party libraries that raises Exceptions instead
+of returning Either instance? The concept of Monad is generic and if your language
+is sufficient expresive, you can find a elegant solution for it.
+
+Imagine the previous example but with validators defined on third party library that
+you does not have under control:
 
 [source, clojure]
 ----
+(require '[cats.monad.exception :as exc])
+
 (defn clean-contact [params]
-  (go
-    (m/>> (<! (clean-email params))
-          (<! (clean-phone params))
-          (<! (clean-state params))
-          (either/right params))))
+  (m/>>= (either/right params)
+         (exc/wrap clean-email)
+         (exc/wrap clean-phone)
+         (exc/wrap clean-state)))
+
+(clean-contact {:email "email@email.com", :phone "222 333 444", :state "WA"})
+
+;; If something fails it will return somthing like this:
+;; => #<Failure [ValidationException(...)]>
+
+;; And if everything is ok, it will return something like:
+;; => #<Success [{:email "email@email.com", :phone "222 333 444", :state "WA"}]>
 ----
 
 <<<
@@ -571,41 +585,10 @@ Literature:
 - http://www.lispcast.com/nil-punning
 - http://swannodette.github.io/2013/08/31/asynchronous-error-handling/
 - http://tersesystems.com/2012/12/27/error-handling-in-scala/
-
-<<<
-
-Example of ring handler that uses monadic error handling.
-
-[source, clojure]
-----
-(defn document-revs-list
-  [{:keys [params] :as req}]
-  (m/mlet [:let   [dbname   (:dbname params)
-                   collname (:collname params)
-                   docid (:docid params)]
-           result (api/get-revisions-of dbname collname docid)]
-    (m/return (ok (map s/to-plain-object result)))))
-----
-
-<<<
-
-Ring middleware used for convert responses from handlers that returns
-monads.
-
-[source, clojure]
-----
-(defn wrap-monadic-ctrl
-  [handler]
-  (fn [req]
-    (let [response (handler req)]
-      (cond
-       (either/left? response)
-       (left-as-response response)
-
-       (either/right? response)
-       (either/from-either response)))))
-----
-
+- http://lucumr.pocoo.org/2014/10/16/on-error-handling/
+- http://mauricio.github.io/2014/02/17/scala-either-try-and-the-m-word.html
+- http://danielwestheide.com/blog/2012/12/26/the-neophytes-guide-to-scala-part-6-error-handling-with-try.html
+- http://java.dzone.com/articles/whats-wrong-java-8-part-iv
 
 TL;DR
 -----
