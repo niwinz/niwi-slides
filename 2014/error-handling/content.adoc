@@ -1,5 +1,5 @@
-Error Handling
-==============
+Functional Error Handling
+=========================
 Andrey Antukh
 :deckjs_theme: swiss
 :deckjs_transition: fade
