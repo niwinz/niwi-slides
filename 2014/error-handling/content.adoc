@@ -10,9 +10,9 @@ Andrey Antukh
 :split:
 
 
-[[historic-1]]
-Let's start with some historic approach
----------------------------------------
+[[historical-1]]
+Let's start with some historical approach
+-----------------------------------------
 
 **How we did things in C?**
 
@@ -57,6 +57,7 @@ if(error != MYAPI_SUCCESS) {
 - Serves as example code to see where we came from.
 - Seems very low level and hacky way to do error handling.
 - Some modern languages uses similar ways of error handling :(
+
 
 NULL Pointer
 ------------
