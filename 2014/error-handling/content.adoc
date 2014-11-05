@@ -10,6 +10,27 @@ Andrey Antukh
 :split:
 
 
+[[who-i-am]]
+Who I am?
+---------
+
+Andrey Antukh
+
+Software Engineer at Kaleidos
+
+- Twitter: https://twitter.com/niwibe
+- Github: https://github.com/niwibe
+
+Author of (spam):
+~~~~~~~~~~~~~~~~~
+
+- link:https://github.com/niwibe/cats[cats]: Category Theory abstractions for Clojure.
+- link:https://github.com/niwibe/suricatta[suricatta]: High level sql toolkit for clojure (backed by jooq library).
+- link:https://github.com/niwibe/clojure.jdbc[clojure.jdbc]: JDBC library for Clojure.
+- link:https://github.com/niwibe/buddy[buddy]: Security library for Clojure.
+- ...
+
+
 [[historical-1]]
 Let's start with some historical approach
 -----------------------------------------
@@ -22,7 +43,6 @@ Let's start with some historical approach
 MYAPI_ERROR get_object_size(MYAPIHandle h, int* returned_size);
 ----
 
-[options="step"]
 .Error handlign
 [source, c]
 ----
@@ -40,7 +60,6 @@ if(get_object_size(h, &size) != MYAPI_SUCCESS) {
 int get_object_size(MYAPIHandle h, MYAPI_ERROR* error);
 ----
 
-[options="step"]
 .Error handling
 [source, c]
 ----
@@ -64,10 +83,9 @@ NULL Pointer
 
 Consist of usage of **null pointer** as result of erroneous operation.
 
-[options="step"]
 - It exists in almost all _modern_ languages.
 - Represents a null pointer in a good portion of these "modern" languages.
-- The source of all evil.
+- Almost always is the source of all evil.
 
 <<<
 
@@ -102,10 +120,11 @@ if (computer != null) {
 ----
 
 [options="step"]
+====
 - Seems very ugly
 - Adding new conditions make it more ugly.
 - **Seems should to be an other and better way to do it.**
-
+====
 <<<
 
 Some languages offers sugar syntax for handling null values:
@@ -141,8 +160,10 @@ if (soundcard.isPresent()) {
 ----
 
 [options="step"]
+====
 - Looks very similar to handling with `NULL`.
 - Seems add more accidental complexity without improving anything.
+====
 
 <<<
 
@@ -157,14 +178,15 @@ String version = computer.flatMap(Computer::getSoundcard)
 ----
 
 [options="step"]
+====
 - Better that java 7 version.
 - Continues having a lot of accidental complexity.
+====
 
 <<<
 
 **Clojure and `nil`**
 
-[options="step"]
 - Clojure inherits java's null pointer, called `nil` in Clojure.
 - Clojure seems to embrace the null pointer.
 - `nil` is a first class value and it can implement protocols.
@@ -196,7 +218,6 @@ String version = computer.flatMap(Computer::getSoundcard)
 
 Summary:
 
-[options="step"]
 - Null if a source of much of problems.
 - Null should be avoided.
 - Some languages has good improvements for handling with null pointers.
@@ -215,10 +236,12 @@ _An exception is an event that occurs during the execution of a
 program that disrupts the normal flow of instructions._
 
 [options="step"]
+====
 - Used as error handling mechanism in almost all object oriented languages.
 - Is the next generation goto.
 - Usually used for label ordinary errors such as failing to open a file
   as exceptional.
+====
 
 [options="step"]
 ====
@@ -264,8 +287,9 @@ With previous example:
 - It's a violation of the Open/Closed Principle. If you want to add another catch clause,
   you have to dive into the guts of a function.
 
-[options="step"]
-====
+
+<<<
+
 Summary:
 
 - Exceptions are no so bad as `NULL`
@@ -274,9 +298,7 @@ Summary:
 - Can works as goto and usually used like goto on popular object oriented languages.
 - Exceptions should be used for exceptional cases (haskell have exceptions... but for
   exceptional cases)
-====
 
-[options="step"]
 **But, we can do it better?**
 
 Error as value
@@ -329,7 +351,6 @@ def validate_form(params):
        return err
 ----
 
-[options="step"]
 **Obviously it can be improved...**
 
 <<<
@@ -404,9 +425,11 @@ This is a first atempt of compose the previously validators:
 ----
 
 [options="step"]
+====
 - It has less code lines that python.
 - Looks ugly!
 - Can we do it better?
+====
 
 <<<
 
@@ -431,12 +454,14 @@ Now, the previous `clean-contact` function can looks like this:
 ----
 
 [options="step"]
+====
 - Looks much better.
 - Can we do it better?
+====
 
 <<<
 
-Define one macro for sytactic sugar.
+Define one macro for syntactic sugar.
 [source, clojure]
 ----
 (defmacro err->> [val & fns]
@@ -461,7 +486,6 @@ Now, here a result of using the previously defined macro:
 
 Summary:
 
-[options="step"]
 - In some languages it can be one of the most expressive way to handle errors.
 - Not uses bad practices like goto or something similar.
 - Can be very verbose on some languages.
@@ -476,7 +500,6 @@ Monadic error handling
 
 **NOTE:** Explaining that is a Monad is out of scope of this talk.
 
-[options="step"]
 - Error handling defined by type.
 - Most used in Haskell.
 - Can be used in Clojure in same way as in Haskell.
@@ -539,13 +562,21 @@ Let see how can be looks the composition of previously defined validators:
          clean-email
          clean-phone
          clean-state))
+
+;; If something fails it will return somthing like this:
+;; => #<Left [We only want people from...]>
+
+;; And if everything is ok, it will return something like:
+;; => #<Right [{:email "email@email.com", :phone "222 333 444", :state "WA"}]>
 ----
 
 [options="step"]
+====
 - It looks like the last example of previous error handling way.
-- It has the advantage that the composition and behavior is defined on type (you should not reapetly define different
+- It has the advantage that the composition and behavior is defined on type (you shouldn't repeatedly define different
   ways of compose different errors).
 - You can create own types and mix them in the same pipeline.
+====
 
 <<<
 
@@ -590,6 +621,7 @@ Literature:
 - http://mauricio.github.io/2014/02/17/scala-either-try-and-the-m-word.html
 - http://danielwestheide.com/blog/2012/12/26/the-neophytes-guide-to-scala-part-6-error-handling-with-try.html
 - http://java.dzone.com/articles/whats-wrong-java-8-part-iv
+
 
 TL;DR
 -----
