@@ -20,6 +20,7 @@ Software Engineer at Kaleidos
 
 - Twitter: https://twitter.com/niwibe
 - Github: https://github.com/niwibe
+- Slides: http://slides.niwi.be/2014/error-handling/
 
 Author of (spam):
 ~~~~~~~~~~~~~~~~~
