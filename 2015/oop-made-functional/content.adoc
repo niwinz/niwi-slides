@@ -376,6 +376,10 @@ But also:
 - You can dispatch by anything.
 - You can build adhoc hierarchies.
 
+Inconvenients:
+
+- has more performance implications than protocols (drasticaly improved in clojure 1.7)
+
 
 == Polymorphism: clojure approach (4)
 
@@ -462,6 +466,10 @@ Continuation...
 (foo ::bar)
 ;; => :unexpected
 ----
+
+- It also allows resolve disambiguations with `prefer-method`
+- It allows attach hierarchy a symbols and third party types.
+- It allows namespaced hierarchies with `make-hierarchy`.
 
 
 == End / Q&A
