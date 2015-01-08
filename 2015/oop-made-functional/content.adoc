@@ -1,0 +1,472 @@
+= OOP made "functional"
+Andrey Antukh
+:deckjs_theme: swiss
+:deckjs_transition: fade
+:customcss: extrastylesa.css
+:navigation:
+:status:
+:source-highlighter: pygments
+:pygments-style: friendly
+:split:
+
+
+== Who I am?
+
+Andrey Antukh
+
+Software Engineer at Kaleidos
+
+- Twitter: https://twitter.com/niwibe
+- Github: https://github.com/niwibe
+
+
+== Author of (spam):
+
+link:https://github.com/niwibe/cats[cats]: Category Theory abstractions for Clojure.
+
+link:https://github.com/niwibe/suricatta[suricatta]: High level sql toolkit for clojure (backed by jooq library).
+
+link:https://github.com/niwibe/clojure.jdbc[clojure.jdbc]: JDBC library for Clojure.
+
+link:https://github.com/niwibe/buddy[buddy]: Security library for Clojure.
+- ...
+
+
+== About that is this talk?
+
+About powerful but molstly hidden features of clojure.
+
+
+== Expression problem: introduction.
+
+*The Expression Problem is a new name for an old problem.*
+
+The goal is to define a datatype by cases, where one can add new cases to the datatype
+and new functions over the datatype, without recompiling existing code, and while
+retaining static type safety (e.g., no casts).
+
+
+== Expression problem: concrete example (1)
+
+We are developing a xmpp client using third party xmpp client library for connect to xmpp server.
+In xmpp has different entities, but we will use two: *RosterItem* and *Jid*.
+
+- Roster in xmpp terminology is a *"address book"*, and *RosterItem* is an entry in that address book.
+- Jid is a simply user identity, and you can found them on "from" and "to" properties on received message instances.
+- Both, *RosterItem* and *Jid* in our hipotetical case represents a User, but they have different semantics and some different properties.
+
+
+== Expression problem: concrete example (2)
+
+The library that we are using defines that hipotetical clases for represent *RosterItem* and *Jid*:
+
+.Hipotetical data type (class) of RosterItem
+[source, groovy]
+----
+public class RosterItem {
+  public String name // "niwi"
+  public String domain // "niwi.be"
+  public SubscriptionType subscriptionType
+}
+----
+
+.Hipotetical data type (class) of Jid
+[source, groovy]
+----
+public class RosterItem {
+  public String local // "niwi"
+  public String domain // "niwi.be"
+  public String resource // "mypc"
+}
+----
+
+== Expression problem: concrete example (3)
+
+- We need treat that data types like a User data type in almost all out code base.
+- We need a common abstraction for access in a "polymorphyc way" to properties.
+- We can not change the source code, because is a third party library.
+
+
+== Expression problem: potential solutions (1)
+
+*Inheritance from a common superclass*
+
+The traditional object-oriented solution to problems of this sort is to leverage subtype polymorphism — that is, inheritance.
+
+In my example, both *RosterItem* and *Jid* need should return a *bare* and *full* representation.
+For it, ideally, both classes would implement some interface with the necessary methods:
+
+[source, groovy]
+----
+public interface IUser {
+  public String getName()
+  public String getBare()
+  public String getFull()
+}
+----
+
+*But it is not an option because we need modify the source code of third party library.*
+
+== Expression problem: potential solutions (2)
+
+*Multiple inheritance*
+
+Another approach to the Expression Problem is multiple inheritance, in which one subclass can extend many superclasses.
+
+.Pseudocode
+[source, groovy]
+----
+public User extends RosterItem, Jid implements IUser {
+  public String getName() { /* implementation */ }
+  public String getBare() { /* implementation */ }
+  public String getFull() { /* implementation */ }
+}
+----
+
+But:
+
+- it leads to complex and sometimes unpredictable class hierarchies.
+- it is not very common feature on languages.
+- it is not possible in all cases.
+
+
+== Expression problem: potential solutions (3)
+
+Another popular solution is to write *wrappers* around classes whose behavior you want to modify.
+
+[source, groovy]
+----
+public class MyRosterItem implements IUser {
+  final private RosterItem rosterItem
+  public MyRosterItem(final RosterItem rosterItem) { this.rosterItem = rosterItem }
+  public String getName() { /* implementation */ }
+  public String getBare() { /* implementation */ }
+  public String getFull() { /* implementation */ }
+}
+----
+
+- it breaks identity: MyRosterItem instance is not RosterItem instance, you can not pass MyRosterItem
+  instance to method that expects RosterItem.
+- you can't compare MyRosterItem and RosterItem with `==` operator and expect return true.
+- you can't use `Object.equals` because it should be symetric.
+- wrappers classes add additional complexity and are tedious to write: what is happens if
+  RosterItem implements List interface or any other with huge number of methods, your wrapper
+  should implement them also.
+
+== Expression problem: potential solutions (4)
+
+*Open Clases or Runtime Traits*
+
+The Ruby and JavaScript languages have helped to popularize the idea of open classes in object-oriented programming.
+
+- An open class isn't limited to the set of methods that were implemented when it was defined.
+- Anyone can "reopen" the class at any time to add new methods, or even replace existing methods.
+
+So, RosterItem and Jid can be reopen and extended with new methods. But:
+
+- it is forbidden/not supported on most programming languages.
+- breaks namespacing (like any other solution exposed previously)
+- name clashing: you have no way of knowing that some other user of that class won't define a different,
+  incompatible method with same name.
+- also known as "Monkey Patching"
+
+
+== Expression problem: potential solutions (4)
+
+*Conditionals*
+
+One of the most common solutions to the "Expression problem": create a different class with static methods and
+use conditionals.
+
+[source, groovy]
+----
+public class Utils {
+  public static String getName(final Object data) {
+    if (source instanceof RosterItem) { /* implementation */ }
+    else if (source instanceof Jid) { /* implementation */ }
+    else { throw IllegalArgumentException("Invalid source."); }
+  }
+}
+----
+
+- we are not working on abstractions: we are not really extending the type, we are creting
+  a function that works on concrete types.
+- can grow into not maintenable code.
+- not performs very well.
+
+
+== Expression problem: potential solutions (5)
+
+*Overloads*
+
+One of the most common solutions to the "Expression problem": create a different class with static methods and
+use overloads.
+
+[source, groovy]
+----
+public class Utils {
+  public static String getName(final RosterItem data) { /* implementation */ }
+  public static String getName(final Jid data) { /* implementation */ }
+}
+----
+
+- performs better that conditionals.
+- becomes unpredictable in the face of inheritance hierarchies.
+- we are not working on abstractions: we are not really extending the type, we are creting
+  a function that works on concrete types.
+
+
+== Expression problem: the clojure approach (1)
+
+Clojure is designed and written in terms of abstractions. And the *protocols* and *datatypes* provides a
+powerful and flexible mechanisms for abstraction and data structure definition with no compromises vs
+the facilities of the host platform.
+
+There are several motivations for protocols and datatypes:
+
+- clear separation between behavior and data.
+- protocols provide high-performance dynamic polymorphism construct as an alternative to interfaces.
+- protocols provide the good of interfaces.
+- Avoid the 'expression problem' by allowing independent extension of the set of types, protocols,
+  and implementations of protocols on types, by different parties.
+
+
+== Expression problem: the clojure approach (2)
+
+.Define our protocol
+[source, clojure]
+----
+(ns myapp.users.protocols)
+
+(defprotocol IUser
+  "Common abstraction for access to user like objects."
+  (get-name [_] "Get user name.")
+  (get-bare [_] "Get bare representation of user")
+  (get-full [_] "Get full representation of user"))
+----
+
+- No implementations are provided.
+- Docs can be specified for the protocol and the functions.
+- The above yields a set of polymorphic functions and a protocol object.
+- All are namespace-qualified by the namespace enclosing the definition.
+- The resulting functions dispatch on the type of their first argument, and thus must have at least one argument.
+- `defprotocol` is dynamic, and does not require AOT compilation.
+
+
+== Expression problem: the clojure approach (3)
+
+.Add implementation to our types for this protocol.
+[source, clojure]
+----
+(ns myapp.types
+  (:require [myapp.users.protocols :as impl])
+  (:import somelib.roster.RosterItem
+           somelib.jid.Jid))
+
+(extend-protocol impl/IUser
+  RosterItem
+  (get-name [o] (.-name o))
+  (get-bare [o] (str (.-name o) "@" (.-domain o)))
+  (get-full [o] (str (.-name o) "@" (.-domain o)))
+
+  Jid
+  (get-name [o] (.-local o))
+  (get-bare [o] (str (.-local o) "@" (.-domain o)))
+  (get-full [o] (str (.-local o) "@" (.-domain o) "/" (.-resource o))))
+----
+
+- extend-protocol extend own or third party clases or clojure datatypes without modifying them.
+
+
+== Expression problem: the clojure approach (3)
+
+.Usage example
+[source, clojure]
+----
+(ns myapp.core
+  (:require [myapp.users.protocols :as impl])
+  (:import somelib.roster.RosterItem
+           somelib.jid.Jid))
+
+(let [jid (Jid. "niwi" "niwi.be" "mypc")
+      ritem (RosterItem. "niwi2" "niwi.be" :both)]
+  (println "Result: " (impl/get-bare jid))
+  (println "Result: " (impl/get-bare ritem)))
+
+;; Will print on stdout:
+;; "Result: niwi@niwi.be"
+;; "Result: niwi2@niwi.be"
+----
+
+- Protocols exposes namespaced functions.
+- No risk of name clashing, you can have different protocols with overlaped or
+  identical method names.
+- In future we can add more types (own or third party) to play well with IUser abstraction.
+- Covers 80%-90% of use cases of multimethods (see below).
+
+
+== Polymorphism: introduction
+
+Is the provisioning of a single interface to entities of different types.
+
+A polymorphic type is a type whose operations can also be applied to values of some other type, or types.
+
+There are several fundamentally different kinds of polymorphism:
+
+- If a function denotes different and potentially heterogeneous implementations depending on a limited
+  range of individually specified types and combinations, it is called *ad hoc polymorphism*. +
+  _Ad hoc polymorphism is supported in many languages using *function overloading*._
+- If the code is written without mention of any specific type and thus can be used transparently with any
+  number of new types, it is called parametric polymorphism. +
+  _In the object-oriented programming community, this is often known as *generics* or *generic programming*.
+  In the functional programming community, this is often simply called *polymorphism*._
+- Subtyping (or *inclusion polymorphism*) is a concept wherein a name may denote instances of many different
+  classes as long as they are related by some common superclass or interface. +
+  _In object-oriented programming, this is often referred to simply as *polymorphism*._
+
+
+== Polymorphism: clojure approach (1)
+
+Clojure goes beyond of standard polymorphism: multimethods.
+
+It is commonly called *polymorphism a la carte*.
+
+.Simple polymorphic function example:
+[source, clojure]
+----
+(ns myapp.impl)
+
+(defmulti get-name class)
+
+(defmethod get-name RosterItem
+  [ritem]
+  (.-name ritem))
+
+(defmethod get-name Jid
+  [jid]
+  (.-local jid))
+----
+
+== Polymorphism: clojure approach (2)
+
+.Explanation of syntax
+[source, clojure]
+----
+(defmulti get-name class)
+;;        ^        ^
+;;        |        ` dispatch function
+;;        ` name of the method
+
+(defmethod get-name RosterItem
+  [ritem]          ;; ^
+  (.-name ritem))  ;; ` dispatch mark
+----
+
+
+== Polymorphism: clojure approach (3)
+
+Clojure multimethods:
+
+- Covers standard polymorphism dispatching by type.
+
+But also:
+
+- You can extend and add more cases.
+- You can provide own dispatcher function.
+- You can dispatch by anything.
+- You can build adhoc hierarchies.
+
+
+== Polymorphism: clojure approach (4)
+
+.Extending with more cases.
+[source, clojure]
+----
+(ns myapp.extensions.fakeuser
+  (:require [myapp.impl :as impl]))
+
+(defrecord FakeUser [name])
+
+(defmethod impl/get-name FakeUser
+  [user]
+  (:name user))
+----
+
+
+*Now, when you call impl/get-name with fake user instance
+it will work as expected, returning a name.*
+
+== Polymorphism: clojure approach (5)
+
+.Own dispatch function
+[source, clojure]
+----
+(defmulti do-stuff (fn [person] [(:firstname data)
+                                 (:lastname data)])
+(defmethod do-stuff ["Pepe" "Garcia"]
+  [person]
+  (println "Hello Pepe Garcia")
+
+(defmethod do-stuff ["Pepe" "Lopez"]
+  [person]
+  (println "Hello Pepe Lopez")
+----
+
+== Polymorphism: clojure approach (6)
+
+Build ad-hoc hierarchies
+
+._derive_ is the fundamental relationship-maker
+[source, clojure]
+----
+(derive ::circle ::shape)
+(derive ::square ::shape)
+----
+
+._parents_, _ancestors_, _descendants_ and _isa?_ let you query the hierarchy
+[source, clojure]
+----
+(parents ::circle)
+;; => #{:user/shape}
+
+(ancestors ::square)
+;; => #{:user/shape}
+
+(descendants ::shape)
+;; => #{:user/circle :user/square}
+
+(isa? ::square ::shape)
+;; => true
+----
+
+== Polymorphism: clojure approach (7)
+
+Continuation...
+
+[source, clojure]
+----
+(derive ::triangle ::shape)
+
+(defmulti foo class)
+(defmethod foo ::circle [o] :foo-circle)
+(defmethod foo ::square [o] :foo-square)
+(defmethod foo ::shape [o] :foo-generic-shape)
+(defmethod foo :default [o] :unexpected)
+
+(foo ::circle)
+;; => :foo-circle
+
+(foo ::triangle)
+;; => :foo-generic-shape
+
+(foo ::bar)
+;; => :unexpected
+----
+
+
+== End / Q&A
+
+My twitter: https://twitter.com/niwibe
+
+My github: https://github.com/niwibe and https://github.com/funcool
+
