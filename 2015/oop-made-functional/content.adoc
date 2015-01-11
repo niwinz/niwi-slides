@@ -56,6 +56,7 @@ In xmpp has different entities, but we will use two: *RosterItem* and *Jid*.
 - Both, *RosterItem* and *Jid* in our hipotetical case represents a User, but they have different semantics and some different properties.
 
 
+
 == Expression problem: concrete example (2)
 
 The library that we are using defines that hipotetical clases for represent *RosterItem* and *Jid*:
@@ -83,7 +84,7 @@ public class RosterItem {
 == Expression problem: concrete example (3)
 
 - We need treat that data types like a User data type in almost all out code base.
-- We need a common abstraction for access in a "polymorphyc way" to properties.
+- We need a common abstraction for access in a "polymorphic way" to properties.
 - We can not change the source code, because is a third party library.
 
 
@@ -445,15 +446,12 @@ Build ad-hoc hierarchies
 
 == Polymorphism: clojure approach (7)
 
-Continuation...
-
 [source, clojure]
 ----
 (derive ::triangle ::shape)
 
 (defmulti foo class)
 (defmethod foo ::circle [o] :foo-circle)
-(defmethod foo ::square [o] :foo-square)
 (defmethod foo ::shape [o] :foo-generic-shape)
 (defmethod foo :default [o] :unexpected)
 
@@ -470,6 +468,166 @@ Continuation...
 - It also allows resolve disambiguations with `prefer-method`
 - It allows attach hierarchy a symbols and third party types.
 - It allows namespaced hierarchies with `make-hierarchy`.
+
+
+== Transducers: introduction
+
+Transducers are composable algorithmic transformations.
+
+[options="step"]
+image::what.jpg[]
+
+
+== Transducers: introduction (2)
+
+It says something about some kind of composable transformations. But I already
+can compose transformations using well known `map`, `reduce`, `mapcat` and `filter`.
+*I'm really need something like _transducers_?*
+
+[options="step"]
+image::yes.gif[]
+
+
+== Transducers: introduction (3)
+
+Let start with basic transformation compositions:
+
+[source, clojure]
+----
+(def xform
+  (comp
+    (partial take 10)
+    (partial filter odd?)
+    (partial map inc)))
+
+(xform (range 100))
+;; => (1 3 5 7 9 11 13 15 17 19)
+----
+
+.Or much better
+[source, clojure]
+----
+(->> (range 100)
+     (map inc)
+     (filter odd?)
+     (take 10))
+;; => (1 3 5 7 9 11 13 15 17 19)
+----
+
+== Transducers: introduction (4)
+
+And that is happens if we want the same transformation but over different abstraction. core.async channels as ex...
+
+[source, clojure]
+----
+(defn map
+  [f channel]
+  (let [output-channel (chan)]
+    (go-loop
+      (if-let [r (<! channel)]
+        (do (>! output-channel r)
+            (recur))
+        (close! output-channel)))
+    output-channel))
+----
+
+== Transducers: introduction (4)
+
+.Summary:
+* Every new collection/process defines its own versions of *map*, *filter*, *mapcat*, etc.
+** MyCollection -> MyCollection
+** Stream -> Stream
+** Channel -> Channel
+** Observable -> Observable
+* Composed transformations are needlessly inefficient.
+* The composition of transformations is *fully coupled to output and input*.
+
+
+== Transducers: introduction (5)
+
+*Transducers*:
+
+* Clojure is build up on abstractions: composable transformations is now an other abstraction.
+* Create composable transformations fully decoupled from input and output.
+* Removes the repeated implementation for `map`, `filter`, `mapcat`, ...
+* Build up on reduction functions.
+* Only requires implement the `reduce`.
+* Nothing new, only function compositions. Nothing like complex abstractions
+  like Iteratee and friends.
+* Lazines a la carte.
+
+
+== Transducers: first steps (1)
+
+Let's go to make an composition, like the first one, but using *transducers*:
+
+[source, clojure]
+----
+(def xform
+  (comp
+    (map inc)
+    (filter odd?)
+    (take 10)))
+----
+
+Now:
+
+- xform is a transducer.
+- xform can be used independently to input or output. It is not coupled
+  to clojure sequences abstraction.
+
+
+== Transducers: first steps (2)
+
+[source, clojure]
+----
+;; Build a concrete collection
+(into [] xform (range 100))
+
+;; Build a lazy sequence
+(sequence xform (range 100))
+
+;; CSP channel
+(chan 1 xform)
+
+;; Is a opensystem
+(whatever xform)
+----
+
+
+== Transducers: first steps (3)
+
+Transducer is build up on very simple concepts: high order reduction functions.
+
+* We known that is means high order function.
+* We also known that is means reduction function.
+
+Transducer is just the combination of this two simple concepts.
+
+In summary: *tranducer is a high order function that takes a reduction function
+and return an other*.
+
+[source, clojure]
+----
+(defn mapping
+  [f]
+  (fn [reducing]
+    (fn [result input]
+      (reducing result (f input)))))
+
+(reduce ((mapping inc) conj) [] [1 2])
+;; => [2 3]
+----
+
+== Transducers: resources
+
+* http://blog.cognitect.com/blog/2014/8/6/transducers-are-coming
+* http://elbenshira.com/blog/understanding-transducers/
+* https://www.youtube.com/watch?v=6mTbuzafcII
+* https://www.youtube.com/watch?v=4KqUvG8HPYo
+* http://clojure.org/transducers
+* http://gigasquidsoftware.com/blog/2014/09/06/green-eggs-and-transducers/
+* https://gist.github.com/ptaoussanis/e537bd8ffdc943bbbce7
 
 
 == End / Q&A
