@@ -56,7 +56,7 @@ retaining static type safety (e.g., no casts).
 == Expression problem: concrete example (1)
 
 We are developing a xmpp client using third party xmpp client library for connect to xmpp server.
-In xmpp has different entities, but we will use two: *RosterItem* and *Jid*.
+The xmpp has different entities, but we will use two: *RosterItem* and *Jid*.
 
 - Roster in xmpp terminology is a *"address book"*, and *RosterItem* is an entry in that address book.
 - Jid is a simply user identity, and you can found them on "from" and "to" properties on received message instances.
@@ -91,6 +91,7 @@ public class RosterItem {
 == Expression problem: concrete example (3)
 
 - We need treat that data types like a User data type in almost all out code base.
+- We need interact in a simply way with the third party library.
 - We need a common abstraction for access in a "polymorphic way" to properties.
 - We can not change the source code, because is a third party library.
 
@@ -200,6 +201,7 @@ public class Utils {
 - we are not working on abstractions: we are not really extending the type, we are creting
   a function that works on concrete types.
 - can grow into not maintainable code.
+- we should constantly modify the defined func for extend it.
 - not performs very well.
 
 
@@ -286,7 +288,7 @@ There are several motivations for protocols and datatypes:
 - extend-protocol extend own or third party classes or clojure datatypes without modifying them.
 
 
-== Expression problem: the clojure approach (3)
+== Expression problem: the clojure approach (4)
 
 .Usage example
 [source, clojure]
@@ -585,6 +587,10 @@ Now:
 
 
 == Transducers: first steps (2)
+
+Now, we can use the defined transformation composition, over a bunch of different types.
+
+*The composition of transformations now is not coupled to the input and output*
 
 [source, clojure]
 ----
