@@ -20,21 +20,28 @@ Software Engineer at Kaleidos
 - Github: https://github.com/niwibe
 
 
-== Author of (spam):
+== Author of: (mainly spam...)
 
-link:https://github.com/niwibe/cats[cats]: Category Theory abstractions for Clojure.
+link:https://github.com/funcool/cats[cats]: Category Theory abstractions for Clojure.
 
 link:https://github.com/niwibe/suricatta[suricatta]: High level sql toolkit for clojure (backed by jooq library).
 
 link:https://github.com/niwibe/clojure.jdbc[clojure.jdbc]: JDBC library for Clojure.
 
-link:https://github.com/niwibe/buddy[buddy]: Security library for Clojure.
-- ...
+link:https://github.com/funcool/buddy-core[buddy-core]: Cryptographic api for Clojure.
+
+link:https://github.com/funcool/buddy-auth[buddy-auth]: Auth facilities for ring based apps.
+
+link:https://github.com/funcool/buddy-hashers[buddy-hashers]: Collection of secure password hashers for Clojure.
+
+link:https://github.com/funcool/buddy-sign[buddy-sign]: High level message signing for Clojure.
+
+...
 
 
 == About that is this talk?
 
-About powerful but molstly hidden features of clojure.
+About powerful but mostly hidden features of clojure.
 
 
 == Expression problem: introduction.
@@ -53,15 +60,15 @@ In xmpp has different entities, but we will use two: *RosterItem* and *Jid*.
 
 - Roster in xmpp terminology is a *"address book"*, and *RosterItem* is an entry in that address book.
 - Jid is a simply user identity, and you can found them on "from" and "to" properties on received message instances.
-- Both, *RosterItem* and *Jid* in our hipotetical case represents a User, but they have different semantics and some different properties.
+- Both, *RosterItem* and *Jid* in our hypothetical case represents a User, but they have different semantics and some different properties.
 
 
 
 == Expression problem: concrete example (2)
 
-The library that we are using defines that hipotetical clases for represent *RosterItem* and *Jid*:
+The library that we are using defines that hypothetical classes for represent *RosterItem* and *Jid*:
 
-.Hipotetical data type (class) of RosterItem
+.Hypothetical data type (class) of RosterItem
 [source, groovy]
 ----
 public class RosterItem {
@@ -71,7 +78,7 @@ public class RosterItem {
 }
 ----
 
-.Hipotetical data type (class) of Jid
+.Hypothetical data type (class) of Jid
 [source, groovy]
 ----
 public class RosterItem {
@@ -156,7 +163,7 @@ public class MyRosterItem implements IUser {
 
 == Expression problem: potential solutions (4)
 
-*Open Clases or Runtime Traits*
+*Open Classes or Runtime Traits*
 
 The Ruby and JavaScript languages have helped to popularize the idea of open classes in object-oriented programming.
 
@@ -192,7 +199,7 @@ public class Utils {
 
 - we are not working on abstractions: we are not really extending the type, we are creting
   a function that works on concrete types.
-- can grow into not maintenable code.
+- can grow into not maintainable code.
 - not performs very well.
 
 
@@ -276,7 +283,7 @@ There are several motivations for protocols and datatypes:
   (get-full [o] (str (.-local o) "@" (.-domain o) "/" (.-resource o))))
 ----
 
-- extend-protocol extend own or third party clases or clojure datatypes without modifying them.
+- extend-protocol extend own or third party classes or clojure datatypes without modifying them.
 
 
 == Expression problem: the clojure approach (3)
