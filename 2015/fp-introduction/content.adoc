@@ -1,0 +1,179 @@
+= Practical introduction to functional programming in the jvm.
+Andrey Antukh
+:deckjs_theme: swiss
+:deckjs_transition: fade
+:customcss: extrastylesa.css
+:navigation:
+:status:
+:source-highlighter: pygments
+:pygments-style: friendly
+:split:
+
+
+== Who I am?
+
+Andrey Antukh
+
+Software Engineer at Kaleidos
+
+- Twitter: https://twitter.com/niwibe
+- Github: https://github.com/niwibe
+
+
+== Author of: (mainly spam...)
+
+link:https://github.com/funcool/cats[cats]: Category Theory abstractions for Clojure.
+
+link:https://github.com/niwibe/suricatta[suricatta]: High level sql toolkit for clojure (backed by jooq library).
+
+link:https://github.com/niwibe/clojure.jdbc[clojure.jdbc]: JDBC library for Clojure.
+
+link:https://github.com/funcool/buddy-core[buddy-core]: Cryptographic api for Clojure.
+
+link:https://github.com/funcool/buddy-auth[buddy-auth]: Auth facilities for ring based apps.
+
+link:https://github.com/funcool/buddy-hashers[buddy-hashers]: Collection of secure password hashers for Clojure.
+
+link:https://github.com/funcool/buddy-sign[buddy-sign]: High level message signing for Clojure.
+
+...
+
+
+== About that is this talk?
+
+A little and mostly practical introduction to functional programming in the jvm.
+
+
+== Immutability
+
+
+Ideas:
+
+- Trust the code.
+- Predictability
+- Something that you are doing with test and is it is integrated in the language.
+- Simplicity about reasoing functions that always do one concrete thing.
+- Mutability is an optimization, not an design pattern.
+- Implies better and predictable design, if you can not mute thins, you star designing a small
+  pieces that transform data. That implies improved testability.
+
+Cons:
+
+- Evident overhead of copying
+
+
+== Persistent data structures
+
+- Efficient way to handle immutable data
+- Mostly efficient as standard data structures.
+- Can be converted efficiently in mutable data structures in case of optimization.
+
+
+== Responsability separation.
+
+
+- Objects stores data (not behavior).
+- Functions encapsulates behavior.
+- classes stores abstractions.
+
+
+Pros:
+
+- Improves code modularity and extensibility (see next slides)
+- Changes how you reason about your code.
+- Clear separation of things, data is not mixed with behavior.
+- Datastructures are for store data, and solve this problem well.
+- Functions are for transform data structures.
+- Classes are for define an abstraction (commonly called typeclasses in haskell).
+
+Cons:
+
+- Mostly imposible in languages where functions are not first-class.
+- Clojure, haskell...
+
+
+== Abstractions (part 1)
+
+- Tend to build on abstractions (also best practice in OOP).
+- Abstractions are extensible in all directions.
+- FP tends implement good abstraction for work with sequences.
+
+
+== Sequences (part 1)
+
+- Forget loops with side effects.
+- Reduce or recursivity is your friend when you need accumulate or reduce some collection.
+- Define transformations as side effect free functions and apply it to the collection.
+- This approach improves reusability (the reduce function can be reused in other contexts).
+- Lazyness, evaluate only that you really need.
+
+
+== Sequences (part 2)
+
+Facts:
+
+- You are constantly defines transformations over concrete abstractions.
+- The transformations are always coupled to secuences.
+
+Notes:
+
+- Would be awesome have a way to compose transformations independently of data structure.
+- Would be awesome use that computations in abstractions different that sequences like
+  streams, channels, observables, promises, ...
+- Clojure has a solution: transducers.
+- In same things as languages like java or scala or other oop langs in the jvm, when the datatype
+  is mixed the behavior, the behavior never can be separated and reused as easy how it can be done
+  in clojure or haskell.
+
+
+== Error handling
+
+- No more exceptions as flow control.
+- Design by contract.
+- Error as value.
+- Error treatment defined in the type (no ad-hoc error handling).
+
+
+Cons:
+
+- Language should help in this aspect.
+
+//^ NOTES: in java you should use optional with explicit and ad-hoc handling. scala helps with the for-loop, haskell and clojure helps a lot in make really syntactic abstraction over all abstractions.
+
+
+== Polymorphism & Abstractions
+
+- Not only exists polymorphism by type (type matching).
+- Not only exists polymorphism by generic type (generics).
+- The real modularity and extensibility is a unfullfiled promise on OOP.
+- Languages like raket and clojure offers a full support for all types of polymorphism.
+
+Notes:
+
+- The oop languages does not allows implement abstractions for existing types because the behavior
+  and data is mixed... we should "open" the object definition (class) and add more implementation
+  and this is only posible with your types.
+- Is much better define own abstractions and work in terms of them independently of the data types
+  you are using, but if you could not extend third party data type with other abstraction you should
+  think in other hacky solutions.
+
+The expression problem.
+
+
+== State
+
+- Add more predictability and serializability.
+- Having this approach you always should reproduce a concrete behavior.
+- It is not about 100% purity, is about limit the side effects to the exterms of your application.
+- Lear how define your application in reemplaceables modules.
+- Work on abstractiosn help to this task.
+- Isolate the persistence and state to the last part of your aplication.
+- We should have side effects, because in case contrary we only can contribute to the global warming ;)
+
+
+== End / Q&A
+
+My twitter: https://twitter.com/niwibe
+
+My github: https://github.com/niwibe and https://github.com/funcool
+
