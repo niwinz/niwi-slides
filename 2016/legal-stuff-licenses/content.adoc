@@ -1,0 +1,282 @@
+= Legal stuff: Licenses, Contributor Agreemens and Patents
+Andrey Antukh
+:deckjs_theme: none
+:deckjs_transition: fade
+:customcss: extrastylesa.css
+:!navigation:
+:status:
+:source-highlighter: pygments
+:pygments-style: friendly
+
+
+== Who should care about licenses?
+
+*Everyone who writes software!*
+
+
+== Raise the code to github does not make it Open Source.
+
+In copyright laws, the abscense of license means *ALL COPYRIGHT*
+
+In other words: *Propietary software*.
+
+
+== Aspects of Licenses
+
+- *copyleft* and *non-copyleft*
+- compatibilty with other types of free licenses
+- compatibility with proprietary licenses
+- enforncement of credit
+- protection of trademark
+- patents.
+
+
+== But what means *copyleft*?
+
+[quote,http://www.gnu.org/licenses/copyleft.en.html]
+____
+Copyleft is a general method for making a program (or other work) free, and requiring all modified and extended versions of the program to be free as well.
+____
+
+
+== Strong copyleft
+
+(also called stiky or transitive).
+
+_Examples: GPL, AGPL_
+
+- If you use _GPL_ library in your code, your code should be gpl also.
+- If you modify _GPL_ source, you should release the modified source also under _GPL_.
+
+
+== Weak copyleft
+
+_Examples: EPL, CDDL, LGPL, MPL_
+
+- You can use the EPL library in your code without the obligation of release your code under EPL.
+- If you modofy EPL source you should release the modified source also under EPL.
+
+
+== Non-Copyleft licenses
+
+_Examples: MIT, BSD, Apache 2.0, ISC_
+
+Also named: *permissive licenses*
+
+- Without obligation to share source of the modification.
+- Compatibility with proprietary licenses.
+- More simple legal text.
+
+
+== Differencies & Compatibilities
+
+
+_One license (A) is compatible with other (B) when the second (B) has the same (or more) clauses that the first (A)_.
+
+
+== Example: MIT and GPL
+
+> *MIT is compatible with GPL* because its clauses has the equivalent in GPL.
+
+> If you are developing an application using GPL license, you can incorporate code under MIT in your code, but not in backward direction.
+> The final code will be GPL (because it is more restrictive).
+
+
+== Example: Apache 2.0 and GPL
+
+> _GPLv3_ includes a patents clause (will be explained later) in the equvalent way as _Apache 2.0_. +
+> *Apache 2.0 is compatible with _GPLv3_*.
+
+> _GPLv2_ does not includes the patent clause, the clauses mismatch causes that *_Apache 2.0_ is incompatible with _GPLv2_*.
+
+
+== Example: GPLv2 and GPLv3
+
+> _GPLv2_ is compatible with _GPLv3_ only if it includes a special emphasis:
+
+[quote]
+____
+[...] you can redistribute it and/or modify it under the terms of the [...], either version 3 of the License, *or (at your option) any later version*.
+____
+
+> Without that *emphasis*, GPLv2 is incompatible with GPLv3. Clear example: Linux kernel.
+
+
+== Compatibility with proprietary licensing
+
+> The permissive (non-copyleft) free licenses allow the covered code to be used in proprietary programs.
+
+> A big subset of *permissive* licenses explicitly allows *sublicensing*.
+
+
+== The "sublicensing" term
+
+> Is the permission that gives you the right to distribute derivative works under equvalent or more restrictuve
+> license. The more restrictive license should be at least restrictive as original.
+
+> *It does not allow change to any license.*
+
+
+== The "patent" license.
+
+> Is a special clause that explicitly gives you a patent license.
+
+
+== Tour: MIT
+
+Type of license: *permissive*
+
+- include copyright.
+- include license.
+- you can do anything else.
+
+*Almost identical/equivalent to BSD (2-Clause)*
+
+
+== Tour: BSD
+
+_I'm reffering to 3-Clauses version_
+
+Type of license: *permissive*
+
+*The same as _MIT_ with additional clause for protect trademark.*
+
+
+== Tour: Apache 2.0
+
+Type of license: *permissive*
+
+*Very in line with _MIT_ and _BSD_ but with additional clauses and more explicit:*
+
+- Additional explicit clause for *sublicense*.
+- Additional explicit clause for *warranty*.
+- Patent license.
+
+*Is a very popular license used by companies to publish their software under
+_permissive_ type of license.*
+
+
+== Tour: MPL
+
+Type of license: *weak copyleft*
+
+*In addition to _MIT_ or _BSD_:*
+
+- trademark protection clause
+- disclose the source.
+- the ability to license binaries with different license.
+- the ability to *mix* with other licenses (explanation needed).
+
+
+== Tour GPLv3
+
+
+Type of license: *strong copyleft*
+
+*In addition to _MIT_ or _BSD_:*
+
+- no sublicense clause.
+- trademark protection clause.
+- disclose the source.
+- strong definition of derivative work (stiky).
+- explicit clause for to be combined under AGPLv3.
+- install instructions.
+- explicit state of any relevant changes to software done by third party.
+
+
+== Proprietary relicensing
+
+*Two commonly known modes*:
+
+- Dual license (opensource and proprietary).
+- Open Core (core opensource, plugins proprietary).
+
+
+== Dual license
+
+*Main purpose:*
+
+> _Selling exceptions to copyleft requirements._ Is typically used with code libraries rather than with standalone applications.
+
+> The author of library (i.e., copyright holder) distributes its library under _GPL_ or any other strong copyleft license but
+> sells that library under more permisive licenses to companies that want include/use that library in proprietary software.
+
+*PyQt is the most common example of that.*
+
+
+== Open Core (or Freemium)
+
+> Distributes the core under open source license (usually permisive or require strong CLA) and the additions/plugins under
+> proprietary license.
+
+- Usually wrongly named "Community version" and "Enterprise version".
+- Usually the open source part has strong CLA and does not has real code contributions.
+
+
+== Contribution License Agreements
+
+*There are three ways to handle copyright ownership: _do nothig_, CLA, or CA (copyright assignment)*
+
+== CLA & CA: _Do Nothing_
+
+Some projects never collect CLAs or CAs from their contributors. Instead, they accept code whenever it seems reasonably
+clear that the contributor intended it to be incorporated into the project.
+
+*Implications:*
+
+> Someone may eventually decide to sue for copyright infringement, alleging that they are the true owner of the code in question
+> and that they never agreed to its being distributed by the project under an open source license.
+
+> *Today* is *not recommeded*.
+
+
+== CLA & CA: _CLA_ (Contributor License Agreement)
+
+Is a explicit document that the contributor should accept (with an simple email, web form or just message in the Pull-Request).
+
+It does *not transfer copyright ownership* and does not change your rights to use your own Contributions for any other purpose.
+
+Example:
+
+> Grant of Copyright License. Subject to the terms and conditions of this Agreement, You hereby grant to _[...]_. and to recipients of software distributed by _[...]_. a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare derivative works of, publicly display, publicly perform, *sublicense*, and distribute Your Contributions and such derivative works.
+
+
+== CLA & CA: _CA_ (Copyright Assignment)
+
+An explicit document usually hand signed that the contributor should sign and send via standard mailing or
+via specialized software for digital signing with the purpose of *transfer the copyright*.
+
+Implications:
+
+- a lot of friction for contribution process
+- almost not used or adapted to be more CLA friendly:
+
+Example:
+
+> [...] You hereby grant to JetBrains and to recipients of software distributed by JetBrains a perpetual, worldwide,
+> non-exclusive, no-charge, royalty-free, irrevocable copyright license to use, [...] sublicense, and publicly perform
+> and display the Contribution and such derivative works on any licensing terms, *including without limitation open source
+> licenses and binary, proprietary, or commercial licenses*.
+
+
+== CLA & CA: DCO (Developer's Certificate of Origin)
+
+I a simpler style _CLA_ with less frictionfor contributors.
+
+Implies:
+
+- Show properly the user the contribution policy.
+- Sign with a simple excplicit message on the commits (`git commit -s`).
+
+*Used by openstack, linux kernel, docker, and is widelly accepted in the open source
+community and backed up by FSF*.
+
+
+== End / Q&A
+
+Blog: https://www.niwi.nz
+
+My twitter: https://twitter.com/niwinz
+
+My github: https://github.com/niwinz and https://github.com/funcool
+
