@@ -114,7 +114,7 @@ ____
 > Is the permission that gives you the right to distribute derivative works under equvalent or more restrictuve
 > license. The more restrictive license should be at least restrictive as original.
 
-> *It does not allow change to any license.*
+> *It does not allow arbitrary licence changes.*
 
 
 == The "patent" license.
@@ -261,22 +261,42 @@ Example:
 
 == CLA & CA: DCO (Developer's Certificate of Origin)
 
-I a simpler style _CLA_ with less frictionfor contributors.
+I a simpler style _CLA_ with less friction for contributors.
 
 Implies:
 
 - Show properly the user the contribution policy.
 - Sign with a simple excplicit message on the commits (`git commit -s`).
 
+```git
+Fix issue #000.
+
+Signed-off-by: Andrey Antukh <niwi@niwi.nz>
+```
+
 *Used by openstack, linux kernel, docker, and is widelly accepted in the open source
 community and backed up by FSF*.
 
 
+== Personal considerations/recommendations
+
+- If you are releasing a library, just use a *permissive* license.
+- Set up a good contribution policy. See `CONTRIBUTING.md` of popular open source
+  projects (Gitlab has great one).
+- If you release a big application, consider use a some kind of CLA or DCO.
+- Do not use GPL licensed libraries on your work at least it is clearly and
+  explicitly allowed.
+
+
+== Links
+
+- http://producingoss.com/en/index.html
+- https://tldrlegal.com/licenses/browse
+
+
 == End / Q&A
 
-Blog: https://www.niwi.nz
+https://www.niwi.nz / https://twitter.com/niwinz / https://github.com/niwinz / https://github.com/funcool
 
-My twitter: https://twitter.com/niwinz
-
-My github: https://github.com/niwinz and https://github.com/funcool
+image:./giphy.gif[]
 
