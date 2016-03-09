@@ -14,7 +14,7 @@ Andrey Antukh
 *Everyone who writes software!*
 
 
-== Raise the code to github does not make it Open Source.
+== Throw the code to github does not make it Open Source.
 
 In copyright laws, the abscense of license means *ALL COPYRIGHT*
 
@@ -41,7 +41,7 @@ ____
 
 == Strong copyleft
 
-(also called stiky or transitive).
+(also called stiky or transitive)
 
 _Examples: GPL, AGPL_
 
